@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../format.dart';
+import '../l10n/l10n.dart';
 import '../theme.dart';
 import 'glass.dart';
 
@@ -31,12 +33,12 @@ Future<void> showErrorDialog(BuildContext context, Object error) => showDialog<v
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.error_outline_rounded, color: Palette.red, size: 30),
-        title: const Text('Þetta tókst ekki'),
+        title: Text(context.l10n.topErrorTitle),
         content: SizedBox(
           width: 600,
-          child: SingleChildScrollView(child: SelectableText('$error', style: Txt.mono)),
+          child: SingleChildScrollView(child: SelectableText(errorText(context.l10n, error), style: Txt.mono)),
         ),
-        actions: [GlassButton(onPressed: () => Navigator.pop(context), label: 'Loka')],
+        actions: [GlassButton(onPressed: () => Navigator.pop(context), label: context.l10n.close)],
       ),
     );
 
@@ -55,7 +57,7 @@ Future<bool> confirm(
       title: Text(title),
       content: SizedBox(width: 520, child: body),
       actions: [
-        GlassButton(onPressed: () => Navigator.pop(context, false), label: 'Hætta við'),
+        GlassButton(onPressed: () => Navigator.pop(context, false), label: context.l10n.topCancel),
         GlassButton(onPressed: () => Navigator.pop(context, true), label: action, tone: tone),
       ],
     ),

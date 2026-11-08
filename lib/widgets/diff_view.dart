@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
+import '../l10n/l10n.dart';
 import '../theme.dart';
 
-String noticeText(DiffNotice notice) => switch (notice) {
-      DiffNotice.binary => 'Tvíundarskrá: ekki hægt að sýna breytingarnar',
-      DiffNotice.missing => 'Skráin er ekki lengur til',
-      DiffNotice.directory => 'Þetta er mappa, oft annað git repo',
-      DiffNotice.tooLarge => 'Skráin er of stór til að sýna',
-      DiffNotice.empty => 'Engar breytingar á innihaldi, til dæmis bara á heimildum',
+String noticeText(AppLocalizations l, DiffNotice notice) => switch (notice) {
+      DiffNotice.binary => l.repoNoticeBinary,
+      DiffNotice.missing => l.repoNoticeMissing,
+      DiffNotice.directory => l.repoNoticeDirectory,
+      DiffNotice.tooLarge => l.repoNoticeTooLarge,
+      DiffNotice.empty => l.repoNoticeEmpty,
       DiffNotice.none => '',
     };
 
@@ -25,7 +26,7 @@ class DiffView extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.info_outline_rounded, size: 34, color: Palette.inkSoft),
           const SizedBox(height: 10),
-          Text(noticeText(diff.notice), style: Txt.muted.copyWith(fontSize: 13)),
+          Text(noticeText(context.l10n, diff.notice), style: Txt.muted.copyWith(fontSize: 13)),
         ]),
       );
     }
@@ -38,7 +39,7 @@ class DiffView extends StatelessWidget {
           if (i == lines.length) {
             return Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Breytingin er of löng, aðeins fyrstu ${lines.length} línurnar eru sýndar.', style: Txt.muted),
+              child: Text(context.l10n.repoDiffTruncated(lines.length), style: Txt.muted),
             );
           }
           return _DiffRow(lines[i]);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
+import '../l10n/l10n.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
 import '../ui/glass.dart';
@@ -31,7 +32,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   final _key = TextEditingController();
   bool _hasKey = false;
   bool _testing = false;
-  String? _testResult;
+  Object? _testResult;
   bool _testFailed = false;
   int _elapsed = 0;
   Timer? _ticker;
@@ -75,7 +76,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
       setState(() => _hasKey = true);
     } on Object catch (error) {
       setState(() {
-        _testResult = firstLine(error);
+        _testResult = error;
         _testFailed = true;
       });
     }
@@ -107,12 +108,12 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         subjectOnly: true,
       );
       setState(() {
-        _testResult = 'Virkar: $message';
+        _testResult = message;
         _testFailed = false;
       });
     } on Object catch (error) {
       setState(() {
-        _testResult = firstLine(error);
+        _testResult = error;
         _testFailed = true;
       });
     } finally {
@@ -125,6 +126,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
+          final l = context.l10n;
           final provider = controller.aiProvider;
           return Dialog(
             backgroundColor: Colors.transparent,
@@ -139,27 +141,41 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                   Row(children: [
                     const Icon(Icons.tune_rounded, color: Palette.blue, size: 22),
                     const SizedBox(width: 10),
-                    Text('Stillingar', style: Txt.title.copyWith(fontSize: 18)),
+                    Text(l.settingsTitle, style: Txt.title.copyWith(fontSize: 18)),
                     const Spacer(),
                     Text('GIT Watcher $appVersion · build $appBuild', style: Txt.muted),
                     const SizedBox(width: 12),
-                    GlassButton(onPressed: () => Navigator.pop(context), icon: Icons.close_rounded, height: 30, radius: 9, tooltip: 'Loka'),
+                    GlassButton(onPressed: () => Navigator.pop(context), icon: Icons.close_rounded, height: 30, radius: 9, tooltip: l.close),
                   ]),
                   const SizedBox(height: 14),
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                         _Section(
+                          icon: Icons.translate_rounded,
+                          title: l.settingsLanguage,
+                          subtitle: l.settingsLanguageSubtitle,
+                          child: Wrap(spacing: 8, runSpacing: 8, children: [
+                            for (final (code, label) in [('en', l.languageEnglish), ('is', l.languageIcelandic)])
+                              GlassButton(
+                                onPressed: () => controller.setLanguage(code),
+                                label: label,
+                                tone: code == controller.config.language ? GlassTone.blue : GlassTone.neutral,
+                                height: 32,
+                              ),
+                          ]),
+                        ),
+                        _Section(
                           icon: Icons.auto_awesome_rounded,
-                          title: 'AI fyrir commit skilaboð',
-                          subtitle: 'Notað af ✨, AI skilaboðum og AI helper.',
+                          title: l.settingsCommitAiTitle,
+                          subtitle: l.settingsCommitAiSubtitle,
                           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                             Wrap(spacing: 8, runSpacing: 8, children: [
                               for (final p in AiProvider.values)
                                 GlassButton(
                                   onPressed: () => _choose(p),
                                   icon: p.cli ? Icons.terminal_rounded : Icons.key_rounded,
-                                  label: providerLabel(p),
+                                  label: providerLabel(l, p),
                                   tone: p == provider ? GlassTone.blue : GlassTone.neutral,
                                   height: 32,
                                 ),
@@ -172,18 +188,18 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                                 onPressed: _testing ? null : () => _test(provider),
                                 busy: _testing,
                                 icon: Icons.play_arrow_rounded,
-                                label: 'Prófa',
+                                label: l.settingsTest,
                                 tone: GlassTone.green,
                               ),
                               const SizedBox(width: 12),
                               if (_testing)
                                 Expanded(
-                                  child: Text('Bíð eftir svari · $_elapsed s · ${providerSpeed(provider)}', style: Txt.muted),
+                                  child: Text(l.settingsWaiting(_elapsed, providerSpeed(l, provider)), style: Txt.muted),
                                 ),
                               if (_testResult != null)
                                 Expanded(
                                   child: Text(
-                                    _testResult!,
+                                    _testFailed ? firstLine(l, _testResult!) : l.settingsTestWorks('$_testResult'),
                                     style: Txt.body.copyWith(color: _testFailed ? Palette.red : Palette.addedText),
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
@@ -194,16 +210,15 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                         ),
                         _Section(
                           icon: Icons.smart_toy_outlined,
-                          title: 'AI agent sem lagar vandamál',
-                          subtitle: 'Keyrir git sjálfur í repoinu þegar commit, rebase eða push stoppar: lagar árekstra og klárar verkið. '
-                              'Notar áskrift Claude Code eða Codex, því API lykill einn og sér getur ekki keyrt git.',
+                          title: l.settingsAgentTitle,
+                          subtitle: l.settingsAgentSubtitle,
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Wrap(spacing: 8, runSpacing: 8, children: [
                               for (final a in AgentProvider.values)
                                 GlassButton(
                                   onPressed: () => controller.setAgent(a),
                                   icon: a == AgentProvider.off ? Icons.block_rounded : Icons.smart_toy_outlined,
-                                  label: agentLabel(a),
+                                  label: agentLabel(l, a),
                                   tone: a == controller.agent ? GlassTone.violet : GlassTone.neutral,
                                   height: 32,
                                 ),
@@ -216,10 +231,10 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                         ),
                         _Section(
                           icon: Icons.visibility_off_outlined,
-                          title: 'Falin repo',
-                          subtitle: 'Falin repo sjást ekki og eru ekki með í Commit allt, Push allt eða AI helper.',
+                          title: l.settingsHiddenTitle,
+                          subtitle: l.settingsHiddenSubtitle,
                           child: controller.hiddenRepos.isEmpty
-                              ? Text('Engin falin repo. Feldu repo með ⋯ á kortinu.', style: Txt.muted)
+                              ? Text(l.settingsNoHidden, style: Txt.muted)
                               : Column(children: [
                                   for (final repo in controller.hiddenRepos)
                                     Padding(
@@ -231,7 +246,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                                         GlassButton(
                                           onPressed: () => controller.unhide(repo.path),
                                           icon: Icons.visibility_outlined,
-                                          label: 'Birta aftur',
+                                          label: l.settingsShowAgain,
                                           height: 30,
                                         ),
                                       ]),
@@ -249,9 +264,10 @@ class _SettingsDialogState extends State<_SettingsDialog> {
       );
 
   Widget _cliStatus(AiProvider provider) {
+    final l = context.l10n;
     final ready = provider == AiProvider.claudeCode ? controller.claudeReady : controller.codexReady;
-    return _signIn(providerLabel(provider), ready, provider == AiProvider.claudeCode ? 'claude auth login' : 'codex login',
-        note: 'Notar áskriftina þína, ${providerSpeed(provider)}.');
+    return _signIn(providerLabel(l, provider), ready, provider == AiProvider.claudeCode ? 'claude auth login' : 'codex login',
+        note: l.settingsUsesSubscription(providerSpeed(l, provider)));
   }
 
   Widget _signIn(String name, bool ready, String loginCommand, {String? note}) => Row(children: [
@@ -259,7 +275,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            '$name: ${ready ? 'innskráð' : 'ekki innskráð'}${note == null ? '' : ' · $note'}',
+            '${ready ? context.l10n.settingsSignedIn(name) : context.l10n.settingsSignedOut(name)}${note == null ? '' : ' · $note'}',
             style: Txt.body,
           ),
         ),
@@ -267,21 +283,21 @@ class _SettingsDialogState extends State<_SettingsDialog> {
           GlassButton(
             onPressed: () => openTerminalCommand(loginCommand),
             icon: Icons.login_rounded,
-            label: 'Skrá inn',
+            label: context.l10n.settingsSignIn,
             tone: GlassTone.blue,
             height: 30,
-            tooltip: 'Opnar Terminal með $loginCommand',
+            tooltip: context.l10n.settingsSignInTooltip(loginCommand),
           ),
         const SizedBox(width: 6),
-        GlassButton(onPressed: controller.checkAi, icon: Icons.refresh_rounded, height: 30, radius: 9, tooltip: 'Athuga aftur'),
+        GlassButton(onPressed: controller.checkAi, icon: Icons.refresh_rounded, height: 30, radius: 9, tooltip: context.l10n.settingsCheckAgain),
       ]);
 
   Widget _apiFields(AiProvider provider) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _Labeled(
-          label: 'Módel',
+          label: context.l10n.settingsModel,
           child: GlassField(
             controller: _model,
-            hint: provider.defaultModel.isEmpty ? 't.d. anthropic/claude-haiku-5-5' : provider.defaultModel,
+            hint: provider.defaultModel.isEmpty ? context.l10n.settingsModelExample('anthropic/claude-haiku-5-5') : provider.defaultModel,
             icon: Icons.memory_rounded,
             onChanged: (value) => controller.setModel(provider, value),
           ),
@@ -306,7 +322,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
           ),
         const SizedBox(height: 8),
         _Labeled(
-          label: 'Slóð',
+          label: context.l10n.settingsBaseUrl,
           child: GlassField(
             controller: _baseUrl,
             hint: provider.defaultBaseUrl,
@@ -316,14 +332,14 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         ),
         const SizedBox(height: 8),
         _Labeled(
-          label: 'API lykill',
+          label: context.l10n.settingsApiKey,
           child: GlassField(
             controller: _key,
-            hint: _hasKey ? 'Vistaður í Keychain · skrifaðu nýjan til að skipta' : 'Límdu lykilinn hér',
+            hint: _hasKey ? context.l10n.settingsKeySavedHint : context.l10n.settingsKeyPasteHint,
             icon: Icons.key_rounded,
             obscure: true,
             onSubmitted: (_) => _saveKey(provider),
-            suffix: GlassButton(onPressed: () => _saveKey(provider), label: 'Vista', height: 30, radius: 8, tone: GlassTone.blue),
+            suffix: GlassButton(onPressed: () => _saveKey(provider), label: context.l10n.settingsSave, height: 30, radius: 8, tone: GlassTone.blue),
           ),
         ),
         if (_hasKey)
@@ -332,9 +348,15 @@ class _SettingsDialogState extends State<_SettingsDialog> {
             child: Row(children: [
               const Icon(Icons.lock_rounded, size: 15, color: Palette.green),
               const SizedBox(width: 6),
-              Text('Lykill vistaður í macOS Keychain', style: Txt.muted),
+              Text(context.l10n.settingsKeySaved, style: Txt.muted),
               const Spacer(),
-              GlassButton(onPressed: () => _deleteKey(provider), icon: Icons.delete_outline_rounded, label: 'Eyða', height: 28, radius: 8),
+              GlassButton(
+                onPressed: () => _deleteKey(provider),
+                icon: Icons.delete_outline_rounded,
+                label: context.l10n.settingsDelete,
+                height: 28,
+                radius: 8,
+              ),
             ]),
           ),
       ]);

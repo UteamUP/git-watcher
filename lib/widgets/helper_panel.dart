@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
+import '../l10n/l10n.dart';
 import '../state/ai_helper.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
@@ -11,27 +12,24 @@ import 'repo_icon.dart';
 
 /// Asks once, listing what will be committed and pushed, then lets the AI helper ship [targets].
 Future<void> startAiHelper(BuildContext context, WatcherController controller, List<RepoState> targets) async {
+  final l = context.l10n;
   if (targets.isEmpty) {
-    toast(context, 'Ekkert til að commita eða pusha');
+    toast(context, l.topNothingToCommitOrPush);
     return;
   }
   final provider = controller.aiProvider;
   if ((provider == AiProvider.claudeCode && !controller.claudeReady) || (provider == AiProvider.codex && !controller.codexReady)) {
-    await showErrorDialog(context, '${providerLabel(provider)} er ekki innskráð. Opnaðu Stillingar (⚙︎) og skráðu þig inn eða veldu API lykil.');
+    await showErrorDialog(context, l.topProviderSignedOut(providerLabel(l, provider)));
     return;
   }
   final go = await confirm(
     context,
-    title: targets.length == 1 ? 'AI agent fyrir ${targets.first.name}' : 'AI helper',
+    title: targets.length == 1 ? l.topAiAgentFor(targets.first.name) : 'AI helper',
     icon: Icons.auto_awesome_rounded,
     tone: GlassTone.rose,
-    action: 'Byrja',
+    action: l.topStart,
     body: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(
-        'AI skrifar commit skilaboð, commitar allar breytingar, sækir og rebase-ar ef þarf og pushar. '
-        'Ef eitthvað stendur á tekur AI agent (Claude Code) við og lagar það.',
-        style: Txt.body.copyWith(fontSize: 13, height: 1.5),
-      ),
+      Text(l.topAiHelperIntro(agentLabel(l, controller.agent)), style: Txt.body.copyWith(fontSize: 13, height: 1.5)),
       const SizedBox(height: 14),
       ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 300),
@@ -46,7 +44,7 @@ Future<void> startAiHelper(BuildContext context, WatcherController controller, L
                   Expanded(child: Text(repo.name, style: Txt.strong)),
                   Text(
                     [
-                      if (repo.dirty) fileCount(repo.files.length),
+                      if (repo.dirty) l.fileCount(repo.files.length),
                       if (repo.ahead > 0) '↑${repo.ahead}',
                       if (repo.behind > 0) '↓${repo.behind}',
                     ].join(' · '),
@@ -64,25 +62,21 @@ Future<void> startAiHelper(BuildContext context, WatcherController controller, L
 
 /// Asks before an agent changes code to make failed CI runs pass, one repo after another.
 Future<void> startFixCi(BuildContext context, WatcherController controller, List<RepoState> repos) async {
+  final l = context.l10n;
   final agent = controller.agent;
   final ready = agent == AgentProvider.claudeCode ? controller.claudeReady : agent == AgentProvider.codex && controller.codexReady;
   if (!ready) {
-    await showErrorDialog(context, 'Enginn AI agent er tilbúinn. Opnaðu Stillingar (⚙︎) og veldu Claude Code eða Codex og skráðu þig inn.');
+    await showErrorDialog(context, l.topNoAgentReady);
     return;
   }
   final go = await confirm(
     context,
-    title: repos.length == 1 ? 'Laga CI í ${repos.first.name}' : 'Laga allt CI · ${repos.length} repo',
+    title: repos.length == 1 ? l.topFixCiIn(repos.first.name) : l.topFixAllCiRepos(repos.length),
     icon: Icons.build_circle_outlined,
     tone: GlassTone.rose,
-    action: repos.length == 1 ? 'Laga CI' : 'Laga ${repos.length} repo',
+    action: repos.length == 1 ? l.topFixCi : l.topFixRepos(repos.length),
     body: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(
-        '${agentLabel(agent)} les villuna úr hverri CI keyrslu, lagar kóðann, commitar og pushar, eitt repo í einu. '
-        'Hann notar hvorki --force né --no-verify og slekkur ekki á prófunum. '
-        'Ef villan er ekki í kóðanum (t.d. vantar secret) breytir hann engu og útskýrir ástæðuna.',
-        style: Txt.body.copyWith(fontSize: 13, height: 1.5),
-      ),
+      Text(l.topFixCiIntro(agentLabel(l, agent)), style: Txt.body.copyWith(fontSize: 13, height: 1.5)),
       const SizedBox(height: 12),
       ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 260),
@@ -97,7 +91,7 @@ Future<void> startFixCi(BuildContext context, WatcherController controller, List
                   Expanded(child: Text(repo.name, style: Txt.strong)),
                   const Icon(Icons.cancel_rounded, size: 15, color: Palette.red),
                   const SizedBox(width: 5),
-                  Text(repo.ci.failedJob ?? 'Mistókst', style: Txt.muted),
+                  Text(repo.ci.failedJob ?? l.ciFailed, style: Txt.muted),
                 ]),
               ),
           ]),
@@ -126,7 +120,8 @@ class HelperPanel extends StatelessWidget {
           Text('AI helper', style: Txt.strong.copyWith(fontSize: 14)),
           const SizedBox(width: 10),
           Expanded(child: Text(helper.summary, style: Txt.muted)),
-          if (!helper.running) GlassButton(onPressed: helper.hide, icon: Icons.close_rounded, height: 28, radius: 8, tooltip: 'Loka'),
+          if (!helper.running)
+            GlassButton(onPressed: helper.hide, icon: Icons.close_rounded, height: 28, radius: 8, tooltip: context.l10n.close),
         ]),
         const SizedBox(height: 6),
         ConstrainedBox(

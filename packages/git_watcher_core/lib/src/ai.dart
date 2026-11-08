@@ -44,12 +44,42 @@ class AiSettings {
 }
 
 /// One line of progress from an agent run.
-class AgentEvent {
-  const AgentEvent(this.text, {this.done = false, this.failed = false});
+/// Fixed things the AI layer says, so the app can show them in the user's language.
+/// [AiException.detail] and [AgentEvent.detail] hold the value each one is about.
+enum AiText {
+  badKey,
+  keychainFailed,
+  emptyReply,
+  cliMissing,
+  claudeSignedOut,
+  timedOut,
+  cliFailed,
+  refused,
+  noModel,
+  noKey,
+  httpStatus,
+  unreachable,
+  agentOff,
+  agentStopped,
+  agentFinished,
+}
 
+class AiException extends GitException {
+  const AiException(this.kind, super.message, {this.detail = ''});
+
+  final AiText kind;
+  final String detail;
+}
+
+class AgentEvent {
+  const AgentEvent(this.text, {this.done = false, this.failed = false, this.kind, this.detail = ''});
+
+  /// What the agent said or ran, as it said it. When [kind] is set, the app shows its own wording instead.
   final String text;
   final bool done;
   final bool failed;
+  final AiText? kind;
+  final String detail;
 }
 
 /// API keys live in the macOS login keychain, never in a file.
@@ -67,14 +97,14 @@ class KeyStore {
   static Future<void> write(AiProvider provider, String key) async {
     final value = key.trim();
     if (value.isEmpty || RegExp(r'[\s"\\]').hasMatch(value)) {
-      throw const GitException('Lykillinn má ekki vera tómur eða innihalda bil, gæsalappir eða bakstrik');
+      throw const AiException(AiText.badKey, 'The key must not be empty or contain spaces, quotes or backslashes');
     }
     final process = await Process.start(_security, ['-i']);
     process.stdin.writeln('add-generic-password -U -s "$_service" -a "${provider.name}" -w "$value"');
     await process.stdin.close();
     final err = await process.stderr.transform(utf8.decoder).join();
     if (await process.exitCode != 0 || err.trim().isNotEmpty) {
-      throw GitException('Gat ekki vistað lykilinn í Keychain: ${err.trim()}');
+      throw AiException(AiText.keychainFailed, 'Could not save the key in the Keychain: ${err.trim()}', detail: err.trim());
     }
   }
 
@@ -134,7 +164,7 @@ class AiService {
       _ => await _openAiCompatible(settings, rules, request),
     };
     final message = raw.replaceAll(RegExp(r'^```[a-z]*\s*|```\s*$', multiLine: true), '').replaceAll('`', '').trim();
-    if (message.isEmpty) throw const GitException('AI skilaði tómum skilaboðum');
+    if (message.isEmpty) throw const AiException(AiText.emptyReply, 'The AI returned an empty message');
     return subjectOnly ? message.split('\n').first.trim() : message;
   }
 
@@ -147,18 +177,18 @@ ${subjectOnly ? '- Write only the subject line.' : '- Add a blank line and a sho
 Reply with the commit message only, nothing else.''';
 
   Future<String> _claudeCli(String rules, String request) async {
-    if (claude == null) throw const GitException('Claude Code (claude) fannst ekki á þessari vél');
+    if (claude == null) throw const AiException(AiText.cliMissing, 'Claude Code (claude) was not found on this Mac', detail: 'Claude Code');
     // --strict-mcp-config with no config: skip the user's MCP servers, which only slow a one-shot answer down.
     final out = await _run(
         claude!, ['-p', rules, '--model', 'haiku', '--no-session-persistence', '--strict-mcp-config', '--output-format', 'text'], request);
     if (out.contains('Failed to authenticate') || out.contains('Invalid API key') || out.contains('/login')) {
-      throw const GitException('Claude Code er ekki innskráð. Opnaðu Stillingar og smelltu á Skrá inn, eða veldu annað AI.');
+      throw const AiException(AiText.claudeSignedOut, 'Claude Code is not signed in');
     }
     return out;
   }
 
   Future<String> _codexCli(String rules, String request) async {
-    if (codex == null) throw const GitException('Codex (codex) fannst ekki á þessari vél');
+    if (codex == null) throw const AiException(AiText.cliMissing, 'Codex (codex) was not found on this Mac', detail: 'Codex');
     // Without MCP servers Codex exits as soon as it has answered; with them it can sit open for minutes.
     return _run(
       codex!,
@@ -200,9 +230,9 @@ Reply with the commit message only, nothing else.''';
     _log('${executable.split('/').last} message exit=$code ${watch.elapsed.inSeconds}s '
         '${code == 0 ? '' : stderr.split('\n').where((l) => l.trim().isNotEmpty).lastOrNull ?? ''}');
     if (code != 0) {
-      if (code == -1) throw GitException('${executable.split('/').last} svaraði ekki innan 3 mínútna');
+      if (code == -1) throw AiException(AiText.timedOut, '${executable.split('/').last} did not answer within 3 minutes', detail: executable.split('/').last);
       final detail = [stderr, stdout].firstWhere((s) => s.isNotEmpty, orElse: () => 'exit $code');
-      throw GitException('AI gat ekki skrifað skilaboð: ${detail.split('\n').last}');
+      throw AiException(AiText.cliFailed, 'The AI could not write a message: ${detail.split('\n').last}', detail: detail.split('\n').last);
     }
     return stdout;
   }
@@ -230,7 +260,7 @@ Reply with the commit message only, nothing else.''';
         ],
       },
     );
-    if (json['stop_reason'] == 'refusal') throw const GitException('Claude neitaði að skrifa þessi skilaboð');
+    if (json['stop_reason'] == 'refusal') throw const AiException(AiText.refused, 'Claude declined to write this message');
     return [
       for (final block in (json['content'] as List? ?? const []).cast<Map<String, dynamic>>())
         if (block['type'] == 'text') block['text'] as String,
@@ -240,7 +270,7 @@ Reply with the commit message only, nothing else.''';
   Future<String> _openAiCompatible(AiSettings settings, String rules, String request) async {
     final key = await _key(settings.provider);
     final model = settings.model.isEmpty ? settings.provider.defaultModel : settings.model;
-    if (model.isEmpty) throw const GitException('Veldu módel í Stillingum');
+    if (model.isEmpty) throw const AiException(AiText.noModel, 'Choose a model in Settings');
     final json = await _post(
       Uri.parse('${_base(settings)}/chat/completions'),
       {'authorization': 'Bearer $key'},
@@ -253,7 +283,7 @@ Reply with the commit message only, nothing else.''';
       },
     );
     final choices = json['choices'] as List? ?? const [];
-    if (choices.isEmpty) throw const GitException('AI skilaði engu svari');
+    if (choices.isEmpty) throw const AiException(AiText.emptyReply, 'The AI returned no answer');
     return ((choices.first as Map)['message'] as Map)['content'] as String? ?? '';
   }
 
@@ -263,7 +293,7 @@ Reply with the commit message only, nothing else.''';
   }
 
   static Future<String> _key(AiProvider provider) async =>
-      await KeyStore.read(provider) ?? (throw const GitException('Enginn API lykill vistaður. Settu hann inn í Stillingum.'));
+      await KeyStore.read(provider) ?? (throw const AiException(AiText.noKey, 'No API key saved. Add one in Settings.'));
 
   Future<Map<String, dynamic>> _post(Uri uri, Map<String, String> headers, Map<String, Object?> body) async {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 20);
@@ -284,11 +314,12 @@ Reply with the commit message only, nothing else.''';
         } on Object {
           // Not JSON: keep the raw body.
         }
-        throw GitException('AI þjónustan svaraði ${response.statusCode}: $detail');
+        throw AiException(AiText.httpStatus, 'The AI service answered ${response.statusCode}: $detail',
+            detail: '${response.statusCode}: $detail');
       }
       return jsonDecode(text) as Map<String, dynamic>;
     } on SocketException catch (error) {
-      throw GitException('Næ ekki sambandi við ${uri.host}: ${error.message}');
+      throw AiException(AiText.unreachable, 'Cannot reach ${uri.host}: ${error.message}', detail: uri.host);
     } finally {
       client.close();
     }
@@ -298,11 +329,11 @@ Reply with the commit message only, nothing else.''';
   Stream<AgentEvent> runAgent({required AgentProvider agent, required String repo, required String task}) => switch (agent) {
         AgentProvider.claudeCode => _claudeAgent(repo, task),
         AgentProvider.codex => _codexAgent(repo, task),
-        AgentProvider.off => Stream.value(const AgentEvent('AI agent er óvirkur í Stillingum', done: true, failed: true)),
+        AgentProvider.off => Stream.value(const AgentEvent('The AI agent is turned off in Settings', done: true, failed: true, kind: AiText.agentOff)),
       };
 
   Stream<AgentEvent> _claudeAgent(String repo, String task) async* {
-    if (claude == null) throw const GitException('Claude Code (claude) fannst ekki á þessari vél');
+    if (claude == null) throw const AiException(AiText.cliMissing, 'Claude Code (claude) was not found on this Mac', detail: 'Claude Code');
     final process = await Process.start(
       claude!,
       [
@@ -334,12 +365,13 @@ Reply with the commit message only, nothing else.''';
           finished = true;
           final text = (event['result'] as String? ?? '').trim();
           final failed = event['is_error'] == true || text.contains('Failed to authenticate');
-          yield AgentEvent(text.contains('Failed to authenticate') ? 'Claude Code er ekki innskráð (Stillingar → Skrá inn)' : text,
-              done: true, failed: failed);
+          yield text.contains('Failed to authenticate')
+              ? const AgentEvent('Claude Code is not signed in', done: true, failed: true, kind: AiText.claudeSignedOut)
+              : AgentEvent(text, done: true, failed: failed);
       }
     }
     final code = await process.exitCode;
-    if (!finished) yield AgentEvent('Claude stoppaði (exit $code)', done: true, failed: true);
+    if (!finished) yield AgentEvent('Claude stopped (exit $code)', done: true, failed: true, kind: AiText.agentStopped, detail: 'Claude (exit $code)');
   }
 
   /// The sandbox keeps `.git` read-only unless it is listed as writable; worktrees keep it elsewhere.
@@ -354,7 +386,7 @@ Reply with the commit message only, nothing else.''';
   }
 
   Stream<AgentEvent> _codexAgent(String repo, String task) async* {
-    if (codex == null) throw const GitException('Codex (codex) fannst ekki á þessari vél');
+    if (codex == null) throw const AiException(AiText.cliMissing, 'Codex (codex) was not found on this Mac', detail: 'Codex');
     final process = await Process.start(
       codex!,
       [
@@ -383,12 +415,16 @@ Reply with the commit message only, nothing else.''';
         yield AgentEvent(last);
       } else if (event['type'] == 'turn.failed') {
         failed = true;
-        last = '${(event['error'] as Map?)?['message'] ?? 'Codex mistókst'}';
+        last = '${(event['error'] as Map?)?['message'] ?? 'Codex failed'}';
       }
     }
     final code = await process.exitCode;
     _log('codex agent exit=$code ${failed ? 'turn failed' : ''}');
-    yield AgentEvent(last.isEmpty ? 'Codex kláraði (exit $code)' : last, done: true, failed: failed || code != 0);
+    final ok = !failed && code == 0;
+    yield last.isEmpty
+        ? AgentEvent('Codex ${ok ? 'finished' : 'stopped'} (exit $code)',
+            done: true, failed: !ok, kind: ok ? AiText.agentFinished : AiText.agentStopped, detail: 'Codex (exit $code)')
+        : AgentEvent(last, done: true, failed: !ok);
   }
 
   static Stream<Map<String, dynamic>> _jsonLines(Process process) async* {

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
 import '../ui/glass.dart';
@@ -58,6 +59,7 @@ class _Front extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const shown = 11;
+    final l = context.l10n;
     return GlassPanel(
       radius: 24,
       tint: const Color(0x66FFFFFF),
@@ -68,9 +70,9 @@ class _Front extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Allt í lagi', style: Txt.title),
+              Text(l.topAllGood, style: Txt.title),
               const SizedBox(height: 2),
-              Text('${repos.length} repo · ekkert að commita eða pusha', style: Txt.muted, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(l.topNothingToShip(repos.length), style: Txt.muted, maxLines: 1, overflow: TextOverflow.ellipsis),
             ]),
           ),
         ]),
@@ -103,7 +105,7 @@ class _Front extends StatelessWidget {
             border: Border.all(color: const Color(0x4D16803F), width: .8),
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(t < .5 ? 'Sýna öll ${repos.length}' : 'Stafla aftur',
+            Text(t < .5 ? l.topShowAll(repos.length) : l.topStackAgain,
                 style: Txt.button.copyWith(color: const Color(0xFF063A1C))),
             const SizedBox(width: 6),
             Transform.rotate(

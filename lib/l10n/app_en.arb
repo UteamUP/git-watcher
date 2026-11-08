@@ -1,0 +1,788 @@
+{
+  "@locale": "en",
+  "languageEnglish": "English",
+  "languageIcelandic": "Íslenska",
+  "noCommits": "no commits",
+  "justNow": "just now",
+  "minutesAgo": "{n} min ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{n} h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "yesterday": "yesterday",
+  "daysAgo": "{n} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "aWeekAgo": "a week ago",
+  "weeksAgo": "{n} weeks ago",
+  "@weeksAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "durationUnderMinute": "< 1 min",
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHours": "{hours} h {minutes} min",
+  "@durationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "kindModified": "modified",
+  "kindAdded": "new",
+  "kindDeleted": "deleted",
+  "kindRenamed": "renamed",
+  "kindUntracked": "untracked",
+  "kindConflicted": "conflict",
+  "ciNone": "No CI pipeline",
+  "ciQueued": "Queued",
+  "ciJobs": "{done} of {total} jobs",
+  "@ciJobs": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "ciPassed": "Passed · {duration}",
+  "@ciPassed": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "ciFailed": "Failed",
+  "ciFailedIn": "Failed in {job}",
+  "@ciFailedIn": {
+    "placeholders": {
+      "job": {
+        "type": "String"
+      }
+    }
+  },
+  "ciCancelled": "Cancelled",
+  "almostDone": "almost done",
+  "minutesLeft": "≈ {n} min left",
+  "@minutesLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "commitsAhead": "{n, plural, =1{1 commit to push} other{{n} commits to push}}",
+  "@commitsAhead": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "commitsBehind": "{n, plural, =1{1 commit behind the remote} other{{n} commits behind the remote}}",
+  "@commitsBehind": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "fileCount": "{n, plural, =1{1 file} other{{n} files}}",
+  "@fileCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "speedCodex": "can take up to a minute",
+  "speedClaudeCode": "takes a few seconds",
+  "speedApi": "takes 1–5 seconds",
+  "providerCustom": "OpenAI-compatible API",
+  "agentOff": "Off",
+  "aiBadKey": "The key must not be empty or contain spaces, quotes or backslashes",
+  "aiKeychainFailed": "Could not save the key in the Keychain: {detail}",
+  "@aiKeychainFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "aiEmptyReply": "The AI returned an empty answer",
+  "aiCliMissing": "{tool} was not found on this Mac",
+  "@aiCliMissing": {
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "aiClaudeSignedOut": "Claude Code is not signed in. Open Settings and click Sign in, or choose another AI.",
+  "aiTimedOut": "{tool} did not answer within 3 minutes",
+  "@aiTimedOut": {
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "aiCliFailed": "The AI could not write a message: {detail}",
+  "@aiCliFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "aiRefused": "Claude declined to write this message",
+  "aiNoModel": "Choose a model in Settings",
+  "aiNoKey": "No API key saved. Add one in Settings.",
+  "aiHttpStatus": "The AI service answered {detail}",
+  "@aiHttpStatus": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "aiUnreachable": "Cannot reach {host}",
+  "@aiUnreachable": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAgentOff": "The AI agent is turned off in Settings",
+  "aiAgentStopped": "{detail} stopped",
+  "@aiAgentStopped": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAgentFinished": "{detail} finished",
+  "@aiAgentFinished": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "cardViewChanges": "View changes and history",
+  "cardCommitHint": "Write a commit message",
+  "nothingToCommit": "Nothing to commit",
+  "cardAiWriting": "{provider} is writing a message · {speed}",
+  "@cardAiWriting": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "cardAiWriteTooltip": "Let AI write the message",
+  "cardReadingStatus": "Reading status…",
+  "cardCleanTree": "Clean working tree",
+  "cardOperationInProgress": "A {operation} is in progress",
+  "@cardOperationInProgress": {
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "cardNoUpstream": "No upstream",
+  "cardUpToDate": "Up to date with {upstream}",
+  "@cardUpToDate": {
+    "placeholders": {
+      "upstream": {
+        "type": "String"
+      }
+    }
+  },
+  "cardNoCommits": "No commits yet",
+  "cardFixCi": "Fix",
+  "cardFixCiTooltip": "Let AI fix the CI failure, then commit and push",
+  "cardCiWatching": "Watching CI: you’ll be notified when the run ends",
+  "cardWatchCi": "Watch CI",
+  "cardMenuUseAgent": "Use AI agent",
+  "cardMenuUseAgentHint": "Writes, commits and pushes",
+  "pullWithRebase": "Pull with rebase",
+  "cardMenuRebaseOnMain": "Rebase on origin/main",
+  "cardMenuSync": "Sync (pull and push)",
+  "cardMenuStash": "Stash changes",
+  "cardMenuStashPop": "Pop stash",
+  "cardMenuContinue": "Continue {operation}",
+  "@cardMenuContinue": {
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMenuAbort": "Abort {operation}",
+  "@cardMenuAbort": {
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMenuFixCi": "Fix CI with AI",
+  "cardMenuOpenCiRun": "Open CI run",
+  "openInVsCode": "Open in VS Code",
+  "cardMenuOpenFinder": "Show in Finder",
+  "cardMenuOpenTerminal": "Open in Terminal",
+  "cardMenuChangeIcon": "Change icon…",
+  "cardMenuDefaultIcon": "Use default icon",
+  "cardMenuHideRepo": "Hide repo",
+  "cardMenuMore": "More actions",
+  "cardMenuImages": "Images",
+  "cardChoose": "Choose",
+  "cardFolderWatching": "Watching",
+  "cardRepoCount": "{n, plural, =1{1 repo} other{{n} repos}}",
+  "@cardRepoCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cardFolderRecent": "Recent folders",
+  "cardFolderHidden": "Hidden repos · click to show again",
+  "cardFolderRecursive": "Search all subfolders",
+  "cardFolderChoose": "Choose folder…",
+  "repoBack": "Back (⌘[)",
+  "repoOperationInProgress": "{operation} in progress",
+  "@repoOperationInProgress": {
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "repoContinue": "Continue",
+  "repoAbort": "Abort",
+  "fetchDone": "Fetch complete",
+  "repoTabChanges": "Changes  {count}",
+  "@repoTabChanges": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repoTabHistory": "History",
+  "repoClean": "The working tree is clean.",
+  "repoCleanWithAhead": "The working tree is clean, with {ahead}.",
+  "@repoCleanWithAhead": {
+    "placeholders": {
+      "ahead": {
+        "type": "String"
+      }
+    }
+  },
+  "repoViewHistory": "View history",
+  "repoSelectedCount": "{selected} of {total} selected",
+  "@repoSelectedCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repoDiscardChanges": "Discard changes",
+  "repoShowInFinder": "Show in Finder",
+  "repoDiscardChangesTitle": "Discard changes?",
+  "repoDiscard": "Discard",
+  "repoDiscardNewFileBody": "{path} is a new file. It will be moved to the Trash, where you can still get it back.",
+  "@repoDiscardNewFileBody": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "repoDiscardChangesBody": "Your changes to {path} will be lost. This cannot be undone.",
+  "@repoDiscardChangesBody": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "repoChangesDiscarded": "Discarded changes to {name}",
+  "@repoChangesDiscarded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "repoCommitMessageHint": "Commit message",
+  "repoWriteWithAi": "Write with AI",
+  "repoCommitAndPush": "Commit and push",
+  "repoCommittedAndPushed": "{summary} and pushed",
+  "@repoCommittedAndPushed": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "repoNoCommitsYet": "No commits yet",
+  "repoNotPushed": "Not pushed",
+  "repoSelectFile": "Select a file",
+  "repoSelectFileHint": "Click a file to see what changed in it.",
+  "repoNoticeBinary": "Binary file: the changes cannot be shown",
+  "repoNoticeMissing": "The file no longer exists",
+  "repoNoticeDirectory": "This is a folder, often another git repo",
+  "repoNoticeTooLarge": "The file is too large to show",
+  "repoNoticeEmpty": "No content changes, for example only permissions changed",
+  "repoDiffTruncated": "This diff is too long. Only the first {n} lines are shown.",
+  "@repoDiffTruncated": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "repoDonutFiles": "{n, plural, =1{file} other{files}}",
+  "@repoDonutFiles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "close": "Close",
+  "settingsLanguage": "Language",
+  "settingsLanguageSubtitle": "Applies to the whole app right away.",
+  "settingsCommitAiTitle": "AI for commit messages",
+  "settingsCommitAiSubtitle": "Used by the AI button on each card, AI messages and the AI helper.",
+  "settingsTest": "Test",
+  "settingsWaiting": "Waiting for a reply · {seconds} s · {speed}",
+  "@settingsWaiting": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTestWorks": "It works: {message}",
+  "@settingsTestWorks": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAgentTitle": "AI agent that fixes problems",
+  "settingsAgentSubtitle": "Runs git in the repo by itself when a commit, rebase or push stops: it resolves conflicts and finishes the job. Uses a Claude Code or Codex subscription, because an API key alone cannot run git.",
+  "settingsHiddenTitle": "Hidden repos",
+  "settingsHiddenSubtitle": "Hidden repos are not shown and are left out of Commit all, Push all and the AI helper.",
+  "settingsNoHidden": "No hidden repos. Hide one from More actions on its card.",
+  "settingsShowAgain": "Show again",
+  "settingsUsesSubscription": "Uses your subscription, {speed}.",
+  "@settingsUsesSubscription": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSignedIn": "{name}: signed in",
+  "@settingsSignedIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSignedOut": "{name}: not signed in",
+  "@settingsSignedOut": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSignIn": "Sign in",
+  "settingsSignInTooltip": "Opens Terminal and runs {command}",
+  "@settingsSignInTooltip": {
+    "placeholders": {
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCheckAgain": "Check again",
+  "settingsModel": "Model",
+  "settingsModelExample": "e.g. {model}",
+  "@settingsModelExample": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsBaseUrl": "Base URL",
+  "settingsApiKey": "API key",
+  "settingsKeySavedHint": "Saved in the Keychain · type a new key to replace it",
+  "settingsKeyPasteHint": "Paste the key here",
+  "settingsSave": "Save",
+  "settingsKeySaved": "Key saved in the macOS Keychain",
+  "settingsDelete": "Delete",
+  "appCiNotification": "{repo}: CI {status}",
+  "@appCiNotification": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "appWriteMessageFirst": "Write a commit message first, or let AI write one.",
+  "appCommitted": "Committed {hash} to {repo}",
+  "@appCommitted": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      },
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "appBusyContinue": "Continuing…",
+  "appBusyAbort": "Aborting…",
+  "appBusyDiscard": "Discarding…",
+  "appSkippedNoMessage": "{repo}: skipped, no message",
+  "@appSkippedNoMessage": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "appCommittedRepo": "{repo}: committed",
+  "@appCommittedRepo": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "appPushedRepo": "{repo}: pushed",
+  "@appPushedRepo": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topSettingsTooltip": "Settings: AI and hidden repos",
+  "topRefreshTooltip": "Refresh (⌘R)",
+  "topFixAllCi": "Fix all CI · {n}",
+  "@topFixAllCi": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topFixAllCiTooltip": "An AI agent fixes every failed CI, one repo at a time",
+  "topAiHelperTooltip": "Write messages, commit and push every repo, and fix problems",
+  "topAiMessages": "AI messages",
+  "topAiMessagesTooltip": "Let AI write commit messages for every repo with changes",
+  "topCommitAll": "Commit all",
+  "topPushAll": "Push all",
+  "topFetchAll": "Fetch all",
+  "topWithChanges": "{n} with changes",
+  "@topWithChanges": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topWaitingPush": "{n} to push",
+  "@topWaitingPush": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topCiRunning": "{n} CI running",
+  "@topCiRunning": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topCiFailed": "{n} CI failed",
+  "@topCiFailed": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topPushRepos": "{n, plural, =1{Push 1 repo} other{Push {n} repos}}",
+  "@topPushRepos": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topScanning": "Looking for git repos…",
+  "topNoRepos": "No git repos found",
+  "topAllGood": "All good",
+  "topNothingToShip": "{n, plural, =1{1 repo · nothing to commit or push} other{{n} repos · nothing to commit or push}}",
+  "@topNothingToShip": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topShowAll": "Show all {n}",
+  "@topShowAll": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topStackAgain": "Stack again",
+  "topErrorTitle": "That didn't work",
+  "topCancel": "Cancel",
+  "topNothingToCommitOrPush": "Nothing to commit or push",
+  "topProviderSignedOut": "{provider} is not signed in. Open Settings and sign in, or choose an API key.",
+  "@topProviderSignedOut": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "topAiAgentFor": "AI agent for {repo}",
+  "@topAiAgentFor": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topStart": "Start",
+  "topAiHelperIntro": "AI writes commit messages, commits every change, fetches and rebases when needed, and pushes. If something gets stuck, {agent} takes over and fixes it.",
+  "topNoAgentReady": "No AI agent is ready. Open Settings, choose Claude Code or Codex, and sign in.",
+  "topFixCiIn": "Fix CI in {repo}",
+  "@topFixCiIn": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topFixAllCiRepos": "{n, plural, =1{Fix all CI · 1 repo} other{Fix all CI · {n} repos}}",
+  "@topFixAllCiRepos": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topFixCi": "Fix CI",
+  "topFixRepos": "{n, plural, =1{Fix 1 repo} other{Fix {n} repos}}",
+  "@topFixRepos": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topFixCiIntro": "{agent} reads the error from each CI run, fixes the code, commits and pushes, one repo at a time. It never uses --force or --no-verify and never turns off tests. If the error is not in the code (a missing secret, for example), it changes nothing and explains why.",
+  "@topFixCiIntro": {
+    "placeholders": {
+      "agent": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperWorkingOn": "{n, plural, =1{working on 1 repo…} other{working on {n} repos…}}",
+  "@topHelperWorkingOn": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topHelperDone": "{total, plural, =1{Done · {done} of 1 repo finished} other{Done · {done} of {total} repos finished}}",
+  "@topHelperDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "topHelperWritingMessage": "Write commit message",
+  "topHelperCommitFiles": "{n, plural, =1{Commit 1 file} other{Commit {n} files}}",
+  "@topHelperCommitFiles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topHelperPushTo": "Push to {remote}",
+  "@topHelperPushTo": {
+    "placeholders": {
+      "remote": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperFixingCiIn": "fixing CI in {repo}…",
+  "@topHelperFixingCiIn": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperFixingCiRepos": "{n, plural, =1{fixing CI in 1 repo…} other{fixing CI in {n} repos…}}",
+  "@topHelperFixingCiRepos": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "topHelperCiDone": "{total, plural, =1{Done · CI fixed and pushed in {fixed} of 1 repo} other{Done · CI fixed and pushed in {fixed} of {total} repos}}",
+  "@topHelperCiDone": {
+    "placeholders": {
+      "fixed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "topBusyFixingCi": "Fixing CI…",
+  "topCiFixFailed": "Could not fix CI",
+  "topHelperFetchingCiLog": "Get the error from the CI run",
+  "topAgentChangedNotPushed": "Changed but not pushed: {text}",
+  "@topAgentChangedNotPushed": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "topAgentNoChange": "Nothing changed: {text}",
+  "@topAgentNoChange": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "topFixAwaitingPush": "Fix waiting to be pushed",
+  "topNoChangeSeeAgent": "Nothing changed · see the agent's explanation",
+  "topFixedWatchingCi": "Fixed and pushed · watching the new CI run",
+  "topHelperProblem": "Problem: {error}. An AI agent is taking over",
+  "@topHelperProblem": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "topAgentNotFinished": "Not finished: {text}",
+  "@topAgentNotFinished": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "topAgentWorking": "{agent} is working…",
+  "@topAgentWorking": {
+    "placeholders": {
+      "agent": {
+        "type": "String"
+      }
+    }
+  },
+  "topAgentFinished": "AI agent finished",
+  "topAgentCouldNotStart": "The AI agent could not start: {error}",
+  "@topAgentCouldNotStart": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@topAiHelperIntro": {
+    "placeholders": {
+      "agent": {
+        "type": "String"
+      }
+    }
+  }
+}

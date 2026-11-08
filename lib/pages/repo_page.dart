@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
+import '../l10n/l10n.dart';
 import '../state/repo_controller.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
@@ -106,7 +107,7 @@ class _Header extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(left: 84, right: 16),
             child: Row(children: [
-              GlassButton(onPressed: () => Navigator.maybePop(context), icon: Icons.chevron_left_rounded, tooltip: 'Til baka (⌘[)'),
+              GlassButton(onPressed: () => Navigator.maybePop(context), icon: Icons.chevron_left_rounded, tooltip: context.l10n.repoBack),
               const SizedBox(width: 12),
               RepoIcon(name: repo.name, iconPath: repo.iconPath, size: 34),
               const SizedBox(width: 10),
@@ -127,19 +128,19 @@ class _Header extends StatelessWidget {
               ],
               if (operation != RepoOperation.none) ...[
                 const SizedBox(width: 10),
-                GlassChip(icon: Icons.warning_amber_rounded, label: '${operationLabel(operation)} í gangi', color: Palette.orange),
+                GlassChip(icon: Icons.warning_amber_rounded, label: context.l10n.repoOperationInProgress(operationLabel(operation)), color: Palette.orange),
                 const SizedBox(width: 6),
                 GlassButton(
                   onPressed: idle ? () => runWithFeedback(context, () => controller.continueOperation(repo)) : null,
                   icon: Icons.play_arrow_rounded,
-                  label: 'Halda áfram',
+                  label: context.l10n.repoContinue,
                   tone: GlassTone.green,
                 ),
                 const SizedBox(width: 6),
                 GlassButton(
                   onPressed: idle ? () => runWithFeedback(context, () => controller.abortOperation(repo)) : null,
                   icon: Icons.close_rounded,
-                  label: 'Hætta við',
+                  label: context.l10n.repoAbort,
                 ),
               ],
               const Spacer(),
@@ -150,7 +151,7 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 12),
               ],
               GlassButton(
-                onPressed: idle ? () => runWithFeedback(context, () => controller.fetch(repo), success: 'Fetch lokið') : null,
+                onPressed: idle ? () => runWithFeedback(context, () => controller.fetch(repo), success: context.l10n.fetchDone) : null,
                 icon: Icons.cloud_download_outlined,
                 label: 'Fetch',
                 tone: GlassTone.violet,
@@ -193,8 +194,8 @@ class _LeftPanel extends StatelessWidget {
             selected: page.tab,
             onChanged: page.setTab,
             items: [
-              (Icons.difference_outlined, 'Breytingar  ${page.files.length}'),
-              (Icons.history_rounded, 'Saga'),
+              (Icons.difference_outlined, context.l10n.repoTabChanges(page.files.length)),
+              (Icons.history_rounded, context.l10n.repoTabHistory),
             ],
           ),
         ),
@@ -255,11 +256,14 @@ class _Changes extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.task_alt_rounded, size: 46, color: Palette.green),
           const SizedBox(height: 10),
-          Text('Ekkert að commita', style: Txt.title),
+          Text(context.l10n.nothingToCommit, style: Txt.title),
           const SizedBox(height: 4),
-          Text(repo.ahead > 0 ? 'Vinnusvæðið er hreint, ${aheadLabel(repo.ahead)}.' : 'Vinnusvæðið er hreint.', style: Txt.muted),
+          Text(
+            repo.ahead > 0 ? context.l10n.repoCleanWithAhead(context.l10n.commitsAhead(repo.ahead)) : context.l10n.repoClean,
+            style: Txt.muted,
+          ),
           const SizedBox(height: 14),
-          GlassButton(onPressed: () => page.setTab(1), icon: Icons.history_rounded, label: 'Skoða sögu'),
+          GlassButton(onPressed: () => page.setTab(1), icon: Icons.history_rounded, label: context.l10n.repoViewHistory),
         ]),
       );
     }
@@ -278,7 +282,7 @@ class _Changes extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Text('${page.included.length} af ${page.files.length} valdar', style: Txt.muted),
+          Text(context.l10n.repoSelectedCount(page.included.length, page.files.length), style: Txt.muted),
           const Spacer(),
           Text('+${repo.addedLines}', style: Txt.strong.copyWith(fontSize: 11.5, color: Palette.addedText)),
           const SizedBox(width: 5),
@@ -309,13 +313,14 @@ class _Changes extends StatelessWidget {
 
   Future<void> _fileMenu(BuildContext context, Offset position, FileChange file) async {
     final repo = page.repo;
+    final l = context.l10n;
     final choice = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
       items: [
-        _popupItem('discard', Icons.undo_rounded, 'Afturkalla breytingar'),
-        _popupItem('finder', Icons.folder_open_rounded, 'Sýna í Finder'),
-        _popupItem('code', Icons.code_rounded, 'Opna í VS Code'),
+        _popupItem('discard', Icons.undo_rounded, l.repoDiscardChanges),
+        _popupItem('finder', Icons.folder_open_rounded, l.repoShowInFinder),
+        _popupItem('code', Icons.code_rounded, l.openInVsCode),
       ],
     );
     final full = '${repo.path}/${file.path}';
@@ -329,19 +334,17 @@ class _Changes extends StatelessWidget {
         final newFile = file.kind == ChangeKind.untracked || file.kind == ChangeKind.added;
         final go = await confirm(
           context,
-          title: 'Afturkalla breytingar?',
+          title: l.repoDiscardChangesTitle,
           icon: Icons.undo_rounded,
           tone: GlassTone.rose,
-          action: 'Afturkalla',
+          action: l.repoDiscard,
           body: Text(
-            newFile
-                ? '${file.path} er ný skrá. Hún fer í ruslafötuna og þú getur sótt hana þangað.'
-                : 'Breytingarnar á ${file.path} hverfa og ekki er hægt að fá þær aftur.',
+            newFile ? l.repoDiscardNewFileBody(file.path) : l.repoDiscardChangesBody(file.path),
             style: Txt.body.copyWith(fontSize: 13, height: 1.5),
           ),
         );
         if (go && context.mounted) {
-          await runWithFeedback(context, () => page.watcher.discard(repo, file), success: 'Breytingar á ${file.fileName} afturkallaðar');
+          await runWithFeedback(context, () => page.watcher.discard(repo, file), success: l.repoChangesDiscarded(file.fileName));
         }
     }
   }
@@ -367,14 +370,14 @@ class _CommitBox extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x141F2547)))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        GlassField(controller: page.message, hint: 'Commit skilaboð', minLines: 3, maxLines: 6, enabled: idle),
+        GlassField(controller: page.message, hint: context.l10n.repoCommitMessageHint, minLines: 3, maxLines: 6, enabled: idle),
         const SizedBox(height: 8),
         Row(children: [
           GlassButton(
             onPressed: canCommit && !repo.writing ? () => runWithFeedback(context, page.writeMessage) : null,
             busy: repo.writing,
             icon: Icons.auto_awesome_rounded,
-            label: 'Skrifa með AI',
+            label: context.l10n.repoWriteWithAi,
             tone: GlassTone.rose,
             height: 32,
           ),
@@ -396,7 +399,7 @@ class _CommitBox extends StatelessWidget {
             child: GlassButton(
               onPressed: canCommit ? () => runWithFeedback(context, () => page.commit(push: true)) : null,
               icon: Icons.north_rounded,
-              label: 'Commit og push',
+              label: context.l10n.repoCommitAndPush,
               tone: GlassTone.blue,
               height: 38,
               expand: true,
@@ -419,7 +422,7 @@ class _History extends StatelessWidget {
       return Center(
         child: page.historyLoading
             ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Palette.blue))
-            : Text('Engin commit enn', style: Txt.muted),
+            : Text(context.l10n.repoNoCommitsYet, style: Txt.muted),
       );
     }
     return ListView.builder(
@@ -463,10 +466,10 @@ class _CommitTile extends StatelessWidget {
                     Row(children: [
                       Text(commit.shortHash, style: Txt.mono.copyWith(fontSize: 11, color: Palette.inkSoft)),
                       Expanded(
-                        child: Text(' · ${commit.author} · ${relativeTime(commit.date)}',
+                        child: Text(' · ${commit.author} · ${relativeTime(context.l10n, commit.date)}',
                             style: Txt.muted.copyWith(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ),
-                      if (!commit.pushed) GlassChip(icon: Icons.north_rounded, label: 'bíður push', color: Palette.blue),
+                      if (!commit.pushed) GlassChip(icon: Icons.north_rounded, label: context.l10n.repoNotPushed, color: Palette.blue),
                     ]),
                   ]),
                 ),
@@ -542,9 +545,9 @@ class _DiffPane extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.difference_outlined, size: 54, color: Palette.inkFaint),
           const SizedBox(height: 12),
-          Text('Veldu skrá', style: Txt.title),
+          Text(context.l10n.repoSelectFile, style: Txt.title),
           const SizedBox(height: 4),
-          Text('Smelltu á skrá til að sjá hvað breyttist í henni.', style: Txt.muted),
+          Text(context.l10n.repoSelectFileHint, style: Txt.muted),
         ]),
       );
     }
@@ -575,7 +578,7 @@ class _DiffPane extends StatelessWidget {
             icon: Icons.code_rounded,
             height: 30,
             radius: 9,
-            tooltip: 'Opna í VS Code',
+            tooltip: context.l10n.openInVsCode,
           ),
         ]),
       ),

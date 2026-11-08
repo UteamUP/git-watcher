@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
+import '../l10n/l10n.dart';
 import '../theme.dart';
 
 /// Ring of changed files by kind; a check when clean, or the commits waiting to be pushed.
@@ -20,7 +21,7 @@ class ChangeDonut extends StatelessWidget {
     if (total > 0) {
       center = Column(mainAxisSize: MainAxisSize.min, children: [
         Text('$total', style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w300, color: Palette.ink, height: 1)),
-        Text(total == 1 ? 'skrá' : 'skrár', style: Txt.muted.copyWith(fontSize: 10)),
+        Text(context.l10n.repoDonutFiles(total), style: Txt.muted.copyWith(fontSize: 10)),
       ]);
     } else if (ahead > 0) {
       center = Column(mainAxisSize: MainAxisSize.min, children: [

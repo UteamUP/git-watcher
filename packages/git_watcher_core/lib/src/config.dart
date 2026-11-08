@@ -17,6 +17,7 @@ class WatcherConfig {
     Map<String, String>? aiModels,
     Map<String, String>? aiBaseUrls,
     this.agent,
+    this.language = 'en',
   })  : recentRoots = recentRoots ?? [],
         icons = icons ?? {},
         watchedCi = watchedCi ?? {},
@@ -42,6 +43,9 @@ class WatcherConfig {
   final Map<String, String> aiModels;
   final Map<String, String> aiBaseUrls;
   AgentProvider? agent;
+
+  /// The app's language code: en (the default) or is.
+  String language;
 
   static String get _home => Platform.environment['HOME'] ?? '/';
 
@@ -75,6 +79,7 @@ class WatcherConfig {
         aiModels: {...?(json['aiModels'] as Map?)?.cast<String, String>()},
         aiBaseUrls: {...?(json['aiBaseUrls'] as Map?)?.cast<String, String>()},
         agent: AgentProvider.byName(json['agent'] as String?),
+        language: json['language'] as String? ?? 'en',
       );
     } on Object {
       return WatcherConfig(root: defaultRoot());
@@ -94,6 +99,7 @@ class WatcherConfig {
       'aiModels': aiModels,
       'aiBaseUrls': aiBaseUrls,
       'agent': agent?.name,
+      'language': language,
     }));
   }
 

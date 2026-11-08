@@ -36,7 +36,7 @@ class AiHelper extends ChangeNotifier {
     running = true;
     visible = true;
     steps.clear();
-    summary = 'vinnur í ${targets.length} repo…';
+    summary = watcher.l10n.topHelperWorkingOn(targets.length);
     notifyListeners();
 
     var finished = 0;
@@ -45,29 +45,30 @@ class AiHelper extends ChangeNotifier {
     }
 
     running = false;
-    summary = 'Búið · $finished af ${targets.length} repo kláruð';
+    summary = watcher.l10n.topHelperDone(finished, targets.length);
     notifyListeners();
   }
 
   Future<bool> _ship(RepoState repo) async {
     final service = watcher.service;
+    final l = watcher.l10n;
     repo.busy = 'AI helper…';
     watcher.notify();
     try {
       await watcher.refreshRepo(repo.path);
       var status = repo.status ?? (throw GitException(repo.error ?? 'Could not read the repository'));
       if (status.operation != RepoOperation.none) {
-        throw GitException('A ${operationLabel(status.operation)} is in progress');
+        throw GitException(l.cardOperationInProgress(operationLabel(status.operation)));
       }
 
       if (status.files.isNotEmpty) {
         var message = repo.message.text.trim();
         if (message.isEmpty) {
-          await _step(repo, Icons.edit_note_rounded, 'Skrifa commit skilaboð', () async {
+          await _step(repo, Icons.edit_note_rounded, l.topHelperWritingMessage, () async {
             message = await watcher.generateMessage(repo, subjectOnly: false);
           });
         }
-        await _step(repo, Icons.check_rounded, 'Commit ${fileCount(status.files.length)}',
+        await _step(repo, Icons.check_rounded, l.topHelperCommitFiles(status.files.length),
             () => service.commit(repo.path, status.files, message, operation: status.operation));
         repo.message.clear();
       }
@@ -75,11 +76,11 @@ class AiHelper extends ChangeNotifier {
       await _step(repo, Icons.cloud_download_rounded, 'Fetch', () => service.fetch(repo.path));
       status = await service.status(repo.path);
       if (status.behind > 0) {
-        await _step(repo, Icons.south_rounded, 'Pull með rebase', () => service.pullRebase(repo.path));
+        await _step(repo, Icons.south_rounded, l.pullWithRebase, () => service.pullRebase(repo.path));
         status = await service.status(repo.path);
       }
       if (status.ahead > 0 || (status.upstream == null && status.hasCommits)) {
-        await _step(repo, Icons.north_rounded, 'Push á ${status.upstream ?? 'origin'}', () => service.push(repo.path));
+        await _step(repo, Icons.north_rounded, l.topHelperPushTo(status.upstream ?? 'origin'), () => service.push(repo.path));
       }
       return true;
     } on Object catch (error) {
@@ -110,7 +111,8 @@ class AiHelper extends ChangeNotifier {
     running = true;
     visible = true;
     steps.clear();
-    summary = repos.length == 1 ? 'lagar CI í ${repos.first.name}…' : 'lagar CI í ${repos.length} repo…';
+    final l = watcher.l10n;
+    summary = repos.length == 1 ? l.topHelperFixingCiIn(repos.first.name) : l.topHelperFixingCiRepos(repos.length);
     notifyListeners();
 
     var fixedCount = 0;
@@ -121,20 +123,21 @@ class AiHelper extends ChangeNotifier {
       last = outcome;
     }
     running = false;
-    summary = repos.length == 1 ? last : 'Búið · CI lagað og pushað í $fixedCount af ${repos.length} repo';
+    summary = repos.length == 1 ? last : watcher.l10n.topHelperCiDone(fixedCount, repos.length);
     notifyListeners();
   }
 
   Future<(bool, String)> _fixCiOne(RepoState repo) async {
+    final l = watcher.l10n;
     final runId = repo.ci.runId!;
-    repo.busy = 'Lagar CI…';
+    repo.busy = l.topBusyFixingCi;
     watcher.notify();
     var fixed = false;
-    var outcome = 'Tókst ekki að laga CI';
+    var outcome = l.topCiFixFailed;
     final headBefore = '${repo.status?.lastCommitAt}|${repo.status?.lastCommitSubject}';
     try {
       var log = '';
-      await _step(repo, Icons.receipt_long_rounded, 'Sæki villuna úr CI keyrslunni', () async {
+      await _step(repo, Icons.receipt_long_rounded, l.topHelperFetchingCiLog, () async {
         log = await watcher.ci.failedLog(repo.path, runId);
       });
       final (step, result) = await _runAgent(repo, '''
@@ -154,24 +157,26 @@ End with one short sentence that says what you did.''');
       if (result != null && !result.failed) {
         fixed = changed && repo.ahead == 0 && !repo.dirty;
         if (!fixed) {
+          final said = agentEventText(l, result);
           step
             ..state = HelperStepState.warning
-            ..text = changed ? 'Breytt en ekki pushað: ${result.text}' : 'Engu breytt: ${result.text}';
-          outcome = changed ? 'Lagfæring bíður push' : 'Engu breytt · sjá skýringu agentsins';
+            ..text = changed ? l.topAgentChangedNotPushed(said) : l.topAgentNoChange(said);
+          outcome = changed ? l.topFixAwaitingPush : l.topNoChangeSeeAgent;
         }
       }
     } on Object catch (error) {
-      _add(HelperStep(repo.name, Icons.error_outline_rounded, firstLine(error), HelperStepState.failed));
+      _add(HelperStep(repo.name, Icons.error_outline_rounded, firstLine(l, error), HelperStepState.failed));
     } finally {
       repo.busy = null;
       await watcher.refreshRepo(repo.path);
     }
     if (fixed) watcher.expectCi(repo);
-    return (fixed, fixed ? 'Lagað og pushað · fylgist með nýrri CI keyrslu' : outcome);
+    return (fixed, fixed ? l.topFixedWatchingCi : outcome);
   }
 
   Future<bool> _agent(RepoState repo, Object error) async {
-    _add(HelperStep(repo.name, Icons.warning_amber_rounded, 'Vandamál: ${firstLine(error)}. AI agent tekur við', HelperStepState.warning));
+    final l = watcher.l10n;
+    _add(HelperStep(repo.name, Icons.warning_amber_rounded, l.topHelperProblem(firstLine(l, error)), HelperStepState.warning));
     final (step, result) = await _runAgent(repo, '''
 GIT Watcher tried to commit and push this repository and stopped with this error:
 
@@ -189,7 +194,7 @@ End with one short sentence that says what you did.''');
     if (!done) {
       step
         ..state = HelperStepState.warning
-        ..text = 'Ekki lokið: ${result.text}';
+        ..text = l.topAgentNotFinished(agentEventText(l, result));
       notifyListeners();
     }
     return done;
@@ -197,17 +202,19 @@ End with one short sentence that says what you did.''');
 
   /// Streams the agent's steps into one row and returns that row with the final event (null if it never ran).
   Future<(HelperStep, AgentEvent?)> _runAgent(RepoState repo, String task) async {
-    final step = _add(HelperStep(repo.name, Icons.smart_toy_rounded, '${agentLabel(watcher.agent)} vinnur…'));
+    final l = watcher.l10n;
+    final step = _add(HelperStep(repo.name, Icons.smart_toy_rounded, l.topAgentWorking(agentLabel(l, watcher.agent))));
     try {
       await for (final event in watcher.ai.runAgent(agent: watcher.agent, repo: repo.path, task: task)) {
-        step.text = event.done && event.text.isEmpty ? 'AI agent kláraði' : event.text;
+        final text = agentEventText(l, event);
+        step.text = event.done && text.isEmpty ? l.topAgentFinished : text;
         if (event.done) step.state = event.failed ? HelperStepState.failed : HelperStepState.done;
         notifyListeners();
         if (event.done) return (step, event);
       }
     } on Object catch (agentError) {
       step
-        ..text = 'AI agent gat ekki byrjað: ${firstLine(agentError)}'
+        ..text = l.topAgentCouldNotStart(firstLine(l, agentError))
         ..state = HelperStepState.failed;
       notifyListeners();
     }

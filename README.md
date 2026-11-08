@@ -31,6 +31,7 @@ push or CI run fails. An MCP server gives AI agents (Claude Code, Codex, Cursor)
 - **Hide repositories** you do not care about and show them again from Settings or the folder menu.
 - **Icons.** Each repository shows its own app icon or logo when it has one in a known place, otherwise a
   coloured glyph from its name, or any image you choose.
+- **English or Icelandic.** English by default; switch in Settings and the whole window changes at once.
 
 ## AI providers
 
@@ -89,4 +90,6 @@ make icon           # re-render the app icon and in-app logo from design/app_ico
 
 - `packages/git_watcher_core` is pure Dart: git, CI, AI providers, config and the MCP server.
 - `lib/` is the Flutter app: Liquid Glass widgets in `lib/ui`, state in `lib/state`, screens in `lib/pages`.
+- Text lives in `lib/l10n/app_en.arb` (the template) and `lib/l10n/app_is.arb`; `flutter gen-l10n` (run by
+  every build) turns them into `AppLocalizations`. Add a key to both files when you add text.
 - `packages/git_watcher_core/tool/` has manual smoke checks for the AI providers and the agent.

@@ -81,7 +81,7 @@ class RepoController extends ChangeNotifier {
           : await watcher.service.commitDiff(repo.path, hash, file);
       if (selected?.path == file.path && selectedCommit == hash) diff = result;
     } on Object catch (error) {
-      diffError = firstLine(error);
+      diffError = firstLine(watcher.l10n, error);
     }
     diffLoading = false;
     _notify();
@@ -113,7 +113,7 @@ class RepoController extends ChangeNotifier {
     message.clear();
     if (!push) return result;
     await watcher.push(repo);
-    return '$result og pushað';
+    return watcher.l10n.repoCommittedAndPushed(result);
   }
 
   Future<void> writeMessage() => watcher.writeMessage(repo, subjectOnly: false, into: message, files: included);

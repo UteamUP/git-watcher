@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
+import '../l10n/l10n.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
 import '../ui/feedback.dart';
@@ -20,6 +21,7 @@ class RepoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final idle = repo.busy == null;
     final dirty = repo.dirty;
     return GlassPanel(
@@ -37,7 +39,7 @@ class RepoCard extends StatelessWidget {
               child: GestureDetector(
                 onTap: onOpen,
                 child: Tooltip(
-                  message: 'Skoða breytingar og sögu',
+                  message: l.cardViewChanges,
                   child: ChangeDonut(counts: repo.status?.counts ?? const {}, ahead: repo.ahead),
                 ),
               ),
@@ -53,14 +55,15 @@ class RepoCard extends StatelessWidget {
         const Spacer(),
         GlassField(
           controller: repo.message,
-          hint: dirty ? 'Skrifaðu commit skilaboð' : 'Ekkert að commita',
+          hint: dirty ? l.cardCommitHint : l.nothingToCommit,
           enabled: dirty && idle,
           icon: Icons.chat_bubble_outline_rounded,
           onSubmitted: (_) => _commit(context),
           suffix: GlassButton(
             onPressed: dirty && idle
                 ? () {
-                    toast(context, '${providerLabel(controller.aiProvider)} skrifar skilaboð · ${providerSpeed(controller.aiProvider)}');
+                    toast(context,
+                        l.cardAiWriting(providerLabel(l, controller.aiProvider), providerSpeed(l, controller.aiProvider)));
                     runWithFeedback(context, () => controller.writeMessage(repo));
                   }
                 : null,
@@ -69,7 +72,7 @@ class RepoCard extends StatelessWidget {
             tone: GlassTone.rose,
             height: 30,
             radius: 8,
-            tooltip: 'Láta AI skrifa skilaboð',
+            tooltip: l.cardAiWriteTooltip,
           ),
         ),
         const SizedBox(height: 10),
@@ -145,7 +148,7 @@ class _Header extends StatelessWidget {
         icon: Icons.visibility_outlined,
         height: 30,
         radius: 9,
-        tooltip: repo.busy ?? 'Skoða breytingar og sögu',
+        tooltip: repo.busy ?? context.l10n.cardViewChanges,
       ),
       const SizedBox(width: 6),
       RepoMenu(controller: controller, repo: repo),
@@ -160,14 +163,15 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     if (repo.status == null) {
-      return Text(repo.error ?? 'Les stöðu…', style: Txt.muted, maxLines: 4, overflow: TextOverflow.ellipsis);
+      return Text(repo.error ?? l.cardReadingStatus, style: Txt.muted, maxLines: 4, overflow: TextOverflow.ellipsis);
     }
     if (!repo.dirty) {
-      return const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _Line(icon: Icons.auto_awesome_rounded, color: Palette.green, text: 'Hreint vinnusvæði'),
-        SizedBox(height: 7),
-        _Line(icon: Icons.task_alt_rounded, color: Palette.inkSoft, text: 'Ekkert að commita', muted: true),
+      return Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _Line(icon: Icons.auto_awesome_rounded, color: Palette.green, text: l.cardCleanTree),
+        const SizedBox(height: 7),
+        _Line(icon: Icons.task_alt_rounded, color: Palette.inkSoft, text: l.nothingToCommit, muted: true),
       ]);
     }
     final counts = repo.status!.counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
@@ -182,7 +186,7 @@ class _Legend extends StatelessWidget {
             Icon(Palette.kindIcon(entry.key), size: 15, color: Palette.kind(entry.key)),
             const SizedBox(width: 7),
             Text('${entry.value}', style: Txt.strong.copyWith(fontSize: 12)),
-            Text(' ${kindLabel(entry.key)}', style: Txt.body.copyWith(fontSize: 12)),
+            Text(' ${kindLabel(l, entry.key)}', style: Txt.body.copyWith(fontSize: 12)),
           ]),
         ),
       Row(children: [
@@ -220,16 +224,17 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final status = repo.status;
     final ci = repo.ci;
     final (IconData syncIcon, Color syncColor, String syncText, bool syncMuted) = switch (repo) {
       _ when repo.error != null => (Icons.error_outline_rounded, Palette.red, repo.error!, false),
       _ when repo.operation != RepoOperation.none =>
-        (Icons.warning_amber_rounded, Palette.orange, '${operationLabel(repo.operation)} í gangi', false),
-      _ when repo.ahead > 0 => (Icons.north_rounded, Palette.blue, aheadLabel(repo.ahead), false),
-      _ when repo.behind > 0 => (Icons.south_rounded, Palette.amber, behindLabel(repo.behind), false),
-      _ when status != null && status.upstream == null => (Icons.cloud_off_rounded, Palette.inkFaint, 'Ekkert upstream', true),
-      _ => (Icons.compare_arrows_rounded, Palette.green, 'Í takt við ${status?.upstream ?? 'remote'}', true),
+        (Icons.warning_amber_rounded, Palette.orange, l.cardOperationInProgress(operationLabel(repo.operation)), false),
+      _ when repo.ahead > 0 => (Icons.north_rounded, Palette.blue, l.commitsAhead(repo.ahead), false),
+      _ when repo.behind > 0 => (Icons.south_rounded, Palette.amber, l.commitsBehind(repo.behind), false),
+      _ when status != null && status.upstream == null => (Icons.cloud_off_rounded, Palette.inkFaint, l.cardNoUpstream, true),
+      _ => (Icons.compare_arrows_rounded, Palette.green, l.cardUpToDate(status?.upstream ?? 'remote'), true),
     };
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -237,12 +242,12 @@ class _Info extends StatelessWidget {
         const Icon(Icons.commit_rounded, size: 15, color: Palette.inkSoft),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(status?.lastCommitSubject ?? 'Ekkert commit', style: Txt.body.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(status?.lastCommitSubject ?? l.cardNoCommits, style: Txt.body.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         const SizedBox(width: 6),
         const Icon(Icons.schedule_rounded, size: 12, color: Palette.inkSoft),
         const SizedBox(width: 3),
-        Text(relativeTime(status?.lastCommitAt), style: Txt.muted.copyWith(fontSize: 11.5)),
+        Text(relativeTime(l, status?.lastCommitAt), style: Txt.muted.copyWith(fontSize: 11.5)),
       ]),
       const SizedBox(height: 7),
       _Line(icon: syncIcon, color: syncColor, text: syncText, muted: syncMuted),
@@ -269,6 +274,7 @@ class _CiRow extends StatelessWidget {
       CiState.failure => (Icons.cancel_rounded, Palette.red),
       CiState.cancelled => (Icons.do_not_disturb_on_outlined, Palette.inkSoft),
     };
+    final l = context.l10n;
     final watched = controller.isCiWatched(repo);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SizedBox(
@@ -280,7 +286,7 @@ class _CiRow extends StatelessWidget {
             child: Text.rich(
               TextSpan(children: [
                 if (ci.state != CiState.none) TextSpan(text: 'CI · ', style: Txt.body.copyWith(fontSize: 12)),
-                TextSpan(text: ciLabel(ci), style: Txt.muted),
+                TextSpan(text: ciLabel(l, ci), style: Txt.muted),
               ]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -292,11 +298,11 @@ class _CiRow extends StatelessWidget {
             GlassButton(
               onPressed: repo.busy == null ? () => startFixCi(context, controller, [repo]) : null,
               icon: Icons.auto_awesome_rounded,
-              label: 'Laga',
+              label: l.cardFixCi,
               tone: GlassTone.rose,
               height: 24,
               radius: 7,
-              tooltip: 'Láta AI laga CI villuna, commita og pusha',
+              tooltip: l.cardFixCiTooltip,
             ),
           ],
           if (ci.state != CiState.none) ...[
@@ -307,7 +313,7 @@ class _CiRow extends StatelessWidget {
               tone: watched ? GlassTone.blue : GlassTone.neutral,
               height: 24,
               radius: 7,
-              tooltip: watched ? 'Fylgst með CI: tilkynning þegar keyrslu lýkur' : 'Fylgjast með CI',
+              tooltip: watched ? l.cardCiWatching : l.cardWatchCi,
             ),
           ],
         ]),

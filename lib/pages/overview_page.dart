@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
+import '../l10n/l10n.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
 import '../ui/feedback.dart';
@@ -47,6 +48,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final helper = controller.helper;
     final working = controller.scanning || controller.refreshing || controller.fetching;
     return WindowDragArea(
@@ -73,9 +75,9 @@ class _Header extends StatelessWidget {
                   const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 1.8, color: Palette.blue)),
                   const SizedBox(width: 10),
                 ],
-                GlassButton(onPressed: () => showSettings(context, controller), icon: Icons.tune_rounded, tooltip: 'Stillingar: AI og falin repo'),
+                GlassButton(onPressed: () => showSettings(context, controller), icon: Icons.tune_rounded, tooltip: l.topSettingsTooltip),
                 const SizedBox(width: 8),
-                GlassButton(onPressed: controller.refreshAll, icon: Icons.refresh_rounded, tooltip: 'Endurhlaða (⌘R)'),
+                GlassButton(onPressed: controller.refreshAll, icon: Icons.refresh_rounded, tooltip: l.topRefreshTooltip),
                 const SizedBox(width: 8),
                 if (controller.ciFailed > 0) ...[
                   GlassButton(
@@ -87,9 +89,9 @@ class _Header extends StatelessWidget {
                               controller.repos.where((r) => r.ci.state == CiState.failure && r.ci.runId != null).toList(),
                             ),
                     icon: Icons.build_circle_outlined,
-                    label: 'Laga allt CI · ${controller.ciFailed}',
+                    label: l.topFixAllCi(controller.ciFailed),
                     tone: GlassTone.rose,
-                    tooltip: 'AI agent lagar öll biluð CI, eitt repo í einu',
+                    tooltip: l.topFixAllCiTooltip,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -101,7 +103,7 @@ class _Header extends StatelessWidget {
                   icon: Icons.auto_awesome_rounded,
                   label: 'AI helper',
                   tone: GlassTone.rose,
-                  tooltip: 'Skrifa skilaboð, commita og pusha öll repo, og laga vandamál',
+                  tooltip: l.topAiHelperTooltip,
                 ),
               ]),
             ),
@@ -115,30 +117,30 @@ class _Header extends StatelessWidget {
                 GlassButton(
                   onPressed: controller.dirtyCount > 0 ? () => runWithFeedback(context, controller.writeAllMessages) : null,
                   icon: Icons.edit_note_rounded,
-                  label: 'AI skilaboð',
+                  label: l.topAiMessages,
                   tone: GlassTone.rose,
-                  tooltip: 'Láta AI skrifa commit skilaboð í öll repo með breytingar',
+                  tooltip: l.topAiMessagesTooltip,
                 ),
                 const SizedBox(width: 8),
                 GlassButton(
                   onPressed: controller.dirtyCount > 0 ? () => runWithFeedback(context, controller.commitAll) : null,
                   icon: Icons.check_circle_outline_rounded,
-                  label: 'Commit allt',
+                  label: l.topCommitAll,
                   tone: GlassTone.green,
                 ),
                 const SizedBox(width: 8),
                 GlassButton(
                   onPressed: controller.aheadCount > 0 ? () => _pushAll(context) : null,
                   icon: Icons.cloud_upload_outlined,
-                  label: 'Push allt',
+                  label: l.topPushAll,
                   tone: GlassTone.blue,
                 ),
                 const SizedBox(width: 8),
                 GlassButton(
-                  onPressed: controller.fetching ? null : () => runWithFeedback(context, controller.fetchAll, success: 'Fetch lokið'),
+                  onPressed: controller.fetching ? null : () => runWithFeedback(context, controller.fetchAll, success: l.fetchDone),
                   busy: controller.fetching,
                   icon: Icons.cloud_download_outlined,
-                  label: 'Fetch allt',
+                  label: l.topFetchAll,
                   tone: GlassTone.violet,
                 ),
                 const SizedBox(width: 12),
@@ -148,18 +150,18 @@ class _Header extends StatelessWidget {
                     reverse: true,
                     child: Row(children: [
                       if (controller.dirtyCount > 0)
-                        GlassChip(icon: Icons.difference_outlined, label: '${controller.dirtyCount} með breytingar', color: Palette.orange),
+                        GlassChip(icon: Icons.difference_outlined, label: l.topWithChanges(controller.dirtyCount), color: Palette.orange),
                       if (controller.aheadCount > 0) ...[
                         const SizedBox(width: 6),
-                        GlassChip(icon: Icons.north_rounded, label: '${controller.aheadCount} bíða push', color: Palette.blue),
+                        GlassChip(icon: Icons.north_rounded, label: l.topWaitingPush(controller.aheadCount), color: Palette.blue),
                       ],
                       if (controller.ciRunning > 0) ...[
                         const SizedBox(width: 6),
-                        GlassChip(icon: Icons.autorenew_rounded, label: '${controller.ciRunning} CI í gangi', color: Palette.blue),
+                        GlassChip(icon: Icons.autorenew_rounded, label: l.topCiRunning(controller.ciRunning), color: Palette.blue),
                       ],
                       if (controller.ciFailed > 0) ...[
                         const SizedBox(width: 6),
-                        GlassChip(icon: Icons.cancel_outlined, label: '${controller.ciFailed} CI mistókst', color: Palette.red),
+                        GlassChip(icon: Icons.cancel_outlined, label: l.topCiFailed(controller.ciFailed), color: Palette.red),
                       ],
                     ]),
                   ),
@@ -177,9 +179,9 @@ class _Header extends StatelessWidget {
     final targets = controller.repos.where((r) => r.ahead > 0).toList();
     final go = await confirm(
       context,
-      title: 'Push allt',
+      title: context.l10n.topPushAll,
       icon: Icons.cloud_upload_outlined,
-      action: 'Pusha ${targets.length} repo',
+      action: context.l10n.topPushRepos(targets.length),
       body: Column(mainAxisSize: MainAxisSize.min, children: [
         for (final repo in targets)
           Padding(
@@ -237,7 +239,7 @@ class _GridState extends State<_Grid> with SingleTickerProviderStateMixin {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(controller.scanning ? Icons.manage_search_rounded : Icons.folder_off_outlined, size: 44, color: Palette.blue),
             const SizedBox(height: 12),
-            Text(controller.scanning ? 'Leita að git repo…' : 'Engin git repo fundust', style: Txt.title),
+            Text(controller.scanning ? context.l10n.topScanning : context.l10n.topNoRepos, style: Txt.title),
             const SizedBox(height: 6),
             Text(controller.config.root, style: Txt.muted),
             const SizedBox(height: 16),

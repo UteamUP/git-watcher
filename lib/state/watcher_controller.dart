@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
+import '../l10n/l10n.dart';
 import '../ui/system.dart';
 import 'ai_helper.dart';
 
@@ -44,13 +45,16 @@ class RepoState {
 }
 
 class WatcherController extends ChangeNotifier {
-  WatcherController({required ProcessEnv env, required this.config})
+  WatcherController({required ProcessEnv env, required this.config, required this.locale})
       : home = env.home,
         service = GitWatcherService(Git(env)),
         ci = CiService(env),
         ai = AiService(env);
 
   final WatcherConfig config;
+
+  /// The app's language; [setLanguage] changes it and remembers the choice.
+  final ValueNotifier<Locale> locale;
   final String home;
   final GitWatcherService service;
   final CiService ci;
@@ -123,6 +127,16 @@ class WatcherController extends ChangeNotifier {
     config
       ..aiProvider = provider
       ..save();
+    _notify();
+  }
+
+  AppLocalizations get l10n => lookupAppLocalizations(locale.value);
+
+  void setLanguage(String code) {
+    config
+      ..language = code
+      ..save();
+    locale.value = supportedLocale(code);
     _notify();
   }
 
@@ -237,7 +251,7 @@ class WatcherController extends ChangeNotifier {
       repo.status = status;
       repo.error = null;
     } on Object catch (error) {
-      repo.error = firstLine(error);
+      repo.error = firstLine(l10n, error);
     } finally {
       _inFlight.remove(path);
     }
@@ -253,7 +267,7 @@ class WatcherController extends ChangeNotifier {
     final before = repo.ci;
     repo.ci = await ci.status(repo.path, branch);
     if (before.active && !repo.ci.active && isCiWatched(repo)) {
-      unawaited(notifyMac('GIT Watcher', '${repo.name}: CI ${ciLabel(repo.ci).toLowerCase()}'));
+      unawaited(notifyMac('GIT Watcher', l10n.appCiNotification(repo.name, ciLabel(l10n, repo.ci).toLowerCase())));
     }
     _notify();
   }
@@ -282,11 +296,11 @@ class WatcherController extends ChangeNotifier {
       runAction(repo, 'Commit…', () async {
         final text = (message ?? repo.message.text).trim();
         if (text.isEmpty) {
-          throw const GitException('Skrifaðu commit skilaboð fyrst, eða láttu AI skrifa þau með ✨.');
+          throw GitException(l10n.appWriteMessageFirst);
         }
         final hash = await service.commit(repo.path, files ?? repo.files, text, operation: repo.operation);
         if (message == null) repo.message.clear();
-        return 'Commit $hash í ${repo.name}';
+        return l10n.appCommitted(hash, repo.name);
       });
 
   Future<String> push(RepoState repo) => runAction(repo, 'Push…', () async {
@@ -308,11 +322,11 @@ class WatcherController extends ChangeNotifier {
   Future<String> stash(RepoState repo) => runAction(repo, 'Stash…', () => service.stash(repo.path));
   Future<String> stashPop(RepoState repo) => runAction(repo, 'Stash…', () => service.stashPop(repo.path));
   Future<String> continueOperation(RepoState repo) =>
-      runAction(repo, 'Held áfram…', () => service.continueOperation(repo.path, repo.operation));
+      runAction(repo, l10n.appBusyContinue, () => service.continueOperation(repo.path, repo.operation));
   Future<String> abortOperation(RepoState repo) =>
-      runAction(repo, 'Hætti við…', () => service.abortOperation(repo.path, repo.operation));
+      runAction(repo, l10n.appBusyAbort, () => service.abortOperation(repo.path, repo.operation));
   Future<void> discard(RepoState repo, FileChange file) =>
-      runAction(repo, 'Afturkalla…', () => service.discard(repo.path, file));
+      runAction(repo, l10n.appBusyDiscard, () => service.discard(repo.path, file));
 
   /// Lets the chosen AI write the message into [into] (the card's field by default).
   Future<void> writeMessage(RepoState repo, {bool subjectOnly = true, TextEditingController? into, List<FileChange>? files}) async {
@@ -348,7 +362,7 @@ class WatcherController extends ChangeNotifier {
       try {
         await writeMessage(repo);
       } on Object catch (error) {
-        failures.add('${repo.name}: ${firstLine(error)}');
+        failures.add('${repo.name}: ${firstLine(l10n, error)}');
       }
     });
     return failures;
@@ -359,14 +373,14 @@ class WatcherController extends ChangeNotifier {
     final report = <String>[];
     for (final repo in repos.where((r) => r.dirty).toList()) {
       if (repo.message.text.trim().isEmpty) {
-        report.add('${repo.name}: sleppt, engin skilaboð');
+        report.add(l10n.appSkippedNoMessage(repo.name));
         continue;
       }
       try {
         await commit(repo);
-        report.add('${repo.name}: commitað');
+        report.add(l10n.appCommittedRepo(repo.name));
       } on Object catch (error) {
-        report.add('${repo.name}: ${firstLine(error)}');
+        report.add('${repo.name}: ${firstLine(l10n, error)}');
       }
     }
     return report;
@@ -378,9 +392,9 @@ class WatcherController extends ChangeNotifier {
     for (final repo in repos.where((r) => r.ahead > 0).toList()) {
       try {
         await push(repo);
-        report.add('${repo.name}: pushað');
+        report.add(l10n.appPushedRepo(repo.name));
       } on Object catch (error) {
-        report.add('${repo.name}: ${firstLine(error)}');
+        report.add('${repo.name}: ${firstLine(l10n, error)}');
       }
     }
     return report;
@@ -395,7 +409,7 @@ class WatcherController extends ChangeNotifier {
       try {
         await service.fetch(repo.path);
       } on Object catch (error) {
-        failures.add('${repo.name}: ${firstLine(error)}');
+        failures.add('${repo.name}: ${firstLine(l10n, error)}');
       }
       await refreshRepo(repo.path);
     });
