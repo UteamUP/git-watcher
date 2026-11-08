@@ -1,3 +1,3 @@
 /// Written by tool/bump_version.sh on every install; do not edit by hand.
-const appVersion = '1.0.2';
-const appBuild = 3;
+const appVersion = '1.0.3';
+const appBuild = 4;

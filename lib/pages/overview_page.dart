@@ -11,6 +11,7 @@ import '../ui/system.dart';
 import '../version.dart';
 import '../widgets/helper_panel.dart';
 import '../widgets/menus.dart';
+import '../widgets/ok_stack.dart';
 import '../widgets/repo_card.dart';
 import '../widgets/repo_icon.dart';
 import '../widgets/settings_dialog.dart';
@@ -196,10 +197,36 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Grid extends StatelessWidget {
+class _Grid extends StatefulWidget {
   const _Grid({required this.controller});
 
   final WatcherController controller;
+
+  @override
+  State<_Grid> createState() => _GridState();
+}
+
+/// Repos that need something get their own card; the ones that are fine wait in an animated pile.
+class _GridState extends State<_Grid> with SingleTickerProviderStateMixin {
+  late final _open = AnimationController(vsync: this, duration: const Duration(milliseconds: 560))
+    ..addStatusListener((_) => setState(() {}));
+
+  WatcherController get controller => widget.controller;
+
+  void _toggle() => _open.isForwardOrCompleted ? _open.reverse() : _open.forward();
+
+  @override
+  void dispose() {
+    _open.dispose();
+    super.dispose();
+  }
+
+  Widget _card(RepoState repo) => RepoCard(
+        key: ValueKey(repo.path),
+        controller: controller,
+        repo: repo,
+        onOpen: () => openRepo(context, controller, repo),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +248,16 @@ class _Grid extends StatelessWidget {
     }
 
     final repos = controller.sorted;
+    final busy = repos.where((r) => r.needsAttention).toList();
+    final fine = repos.where((r) => !r.needsAttention).toList();
+    final fanned = _open.status != AnimationStatus.dismissed;
+    final cells = <Widget>[
+      for (final repo in busy) _card(repo),
+      if (fine.isNotEmpty) OkStack(key: const ValueKey('ok-stack'), repos: fine, open: _open, onTap: _toggle),
+      if (fanned)
+        for (var i = 0; i < fine.length; i++)
+          Unstack(key: ValueKey('fan-${fine[i].path}'), open: _open, index: i, count: fine.length, child: _card(fine[i])),
+    ];
     return LayoutBuilder(builder: (context, constraints) {
       final columns = columnsFor(constraints.maxWidth - 40);
       return CustomScrollView(slivers: [
@@ -238,15 +275,7 @@ class _Grid extends StatelessWidget {
               mainAxisSpacing: cardGap,
               crossAxisSpacing: cardGap,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => RepoCard(
-                key: ValueKey(repos[i].path),
-                controller: controller,
-                repo: repos[i],
-                onOpen: () => openRepo(context, controller, repos[i]),
-              ),
-              childCount: repos.length,
-            ),
+            delegate: SliverChildListDelegate(cells),
           ),
         ),
       ]);
