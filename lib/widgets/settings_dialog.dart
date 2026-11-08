@@ -8,6 +8,7 @@ import '../state/watcher_controller.dart';
 import '../theme.dart';
 import '../ui/glass.dart';
 import '../ui/system.dart';
+import '../version.dart';
 import 'repo_icon.dart';
 
 Future<void> showSettings(BuildContext context, WatcherController controller) {
@@ -140,6 +141,8 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                     const SizedBox(width: 10),
                     Text('Stillingar', style: Txt.title.copyWith(fontSize: 18)),
                     const Spacer(),
+                    Text('GIT Watcher $appVersion · build $appBuild', style: Txt.muted),
+                    const SizedBox(width: 12),
                     GlassButton(onPressed: () => Navigator.pop(context), icon: Icons.close_rounded, height: 30, radius: 9, tooltip: 'Loka'),
                   ]),
                   const SizedBox(height: 14),

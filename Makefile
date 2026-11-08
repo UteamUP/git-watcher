@@ -4,7 +4,7 @@ MCP_BIN := $(HOME)/.local/bin/git-watcher-mcp
 CHROME := /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 ICONSET := macos/Runner/Assets.xcassets/AppIcon.appiconset
 
-.PHONY: run app install mcp register-mcp icon analyze test
+.PHONY: run app bump install mcp register-mcp icon analyze test
 
 run:
 	flutter run -d macos
@@ -12,9 +12,14 @@ run:
 app:
 	flutter build macos --release
 
-install: app mcp
+bump:
+	sh tool/bump_version.sh
+
+install: bump app mcp
+	-pkill -f "$(APP_NAME).app/Contents/MacOS/$(APP_NAME)"
 	rm -rf "/Applications/$(APP_NAME).app"
 	cp -R "$(RELEASE_APP)" /Applications/
+	open "/Applications/$(APP_NAME).app"
 
 mcp:
 	mkdir -p "$(dir $(MCP_BIN))"

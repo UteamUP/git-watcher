@@ -36,10 +36,14 @@ class _GitWatcherAppState extends State<GitWatcherApp> {
         title: 'GIT Watcher',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        builder: (context, child) => Stack(fit: StackFit.expand, children: [
-          const Wallpaper(),
-          BackdropGroup(child: child!),
-        ]),
+        // Text is set a little larger than macOS defaults so it reads easily on the glass.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.06)),
+          child: Stack(fit: StackFit.expand, children: [
+            const Wallpaper(),
+            BackdropGroup(child: child!),
+          ]),
+        ),
         home: FutureBuilder<WatcherController>(
           future: _controller,
           builder: (context, snapshot) => snapshot.hasData

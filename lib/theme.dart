@@ -3,9 +3,9 @@ import 'package:git_watcher_core/git_watcher_core.dart';
 
 /// Colours from the UteamUP logo, darkened where text has to sit on glass.
 class Palette {
-  static const ink = Color(0xFF1F2547);
-  static const inkSoft = Color(0xFF424968);
-  static const inkFaint = Color(0xFF8E94AA);
+  static const ink = Color(0xFF101530);
+  static const inkSoft = Color(0xFF283050);
+  static const inkFaint = Color(0xFF6A7088);
   static const blue = Color(0xFF1A6BB5);
   static const green = Color(0xFF16803F);
   static const rose = Color(0xFFC8264E);
@@ -48,8 +48,8 @@ class Palette {
 }
 
 class Txt {
-  static const body = TextStyle(fontFamily: 'Roboto', fontSize: 12.5, fontWeight: FontWeight.w300, color: Palette.ink, height: 1.3);
-  static const muted = TextStyle(fontFamily: 'Roboto', fontSize: 12, fontWeight: FontWeight.w300, color: Palette.inkSoft, height: 1.3);
+  static const body = TextStyle(fontFamily: 'Roboto', fontSize: 12.5, fontWeight: FontWeight.w400, color: Palette.ink, height: 1.3);
+  static const muted = TextStyle(fontFamily: 'Roboto', fontSize: 12, fontWeight: FontWeight.w400, color: Palette.inkSoft, height: 1.3);
   static const strong = TextStyle(fontFamily: 'Roboto', fontSize: 12.5, fontWeight: FontWeight.w500, color: Palette.ink, height: 1.3);
   static const title = TextStyle(fontFamily: 'Roboto', fontSize: 15, fontWeight: FontWeight.w500, color: Palette.ink, height: 1.2);
   static const button = TextStyle(fontFamily: 'Roboto', fontSize: 13, fontWeight: FontWeight.w500, height: 1);

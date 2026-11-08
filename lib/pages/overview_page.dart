@@ -8,6 +8,7 @@ import '../ui/feedback.dart';
 import '../ui/glass.dart';
 import '../ui/layout.dart';
 import '../ui/system.dart';
+import '../version.dart';
 import '../widgets/helper_panel.dart';
 import '../widgets/menus.dart';
 import '../widgets/repo_card.dart';
@@ -62,6 +63,8 @@ class _Header extends StatelessWidget {
                 const LogoTile(size: 34),
                 const SizedBox(width: 10),
                 Text('GIT Watcher', style: Txt.title.copyWith(fontSize: 16)),
+                const SizedBox(width: 6),
+                Text('v$appVersion', style: Txt.muted.copyWith(fontSize: 11.5)),
                 const SizedBox(width: 14),
                 Flexible(child: FolderButton(controller: controller)),
                 const Spacer(),

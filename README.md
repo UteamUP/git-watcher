@@ -54,9 +54,12 @@ fixes problems runs Claude Code or Codex in the repository, because it has to ru
 Requires macOS, Flutter 3.47+, git and, for CI, the GitHub CLI (`gh auth login`).
 
 ```bash
-make install        # builds the app into /Applications and the MCP server into ~/.local/bin
+make install        # raises the version, builds the app into /Applications and the MCP server into ~/.local/bin
 make register-mcp   # registers the MCP server with Claude Code and Codex
 ```
+
+Every `make install` raises the patch version and build number (`tool/bump_version.sh`), shown next to the
+title and in Settings.
 
 ## MCP server for AI agents
 
