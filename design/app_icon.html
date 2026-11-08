@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- Source of the GIT Watcher app icon (design/app_icon_1024.png) and the in-app logo (#logo). Render with: make icon -->
+<!-- A git branch whose commits are small isometric cubes in the UteamUP logo colours. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>GIT Watcher icon</title>
+<style>
+  body { margin: 0; width: 1024px; height: 1024px; background: transparent; overflow: hidden; }
+  .plate { position: absolute; left: 100px; top: 100px; width: 824px; height: 824px; border-radius: 185px; overflow: hidden;
+    box-shadow: 0 22px 44px rgba(30,30,80,.34); }
+  .plate svg { position: absolute; inset: -60px; width: 944px; height: 944px; filter: blur(30px) saturate(125%); }
+  .frost { position: absolute; inset: 0; border-radius: 185px;
+    background: linear-gradient(170deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.30) 60%, rgba(255,255,255,.22) 100%);
+    box-shadow: inset 0 4px 2px rgba(255,255,255,.95), inset 0 -30px 60px rgba(255,255,255,.30); }
+  .rim { position: absolute; left: 100px; top: 100px; width: 824px; height: 824px; border-radius: 185px; padding: 7px;
+    box-sizing: border-box; background: conic-gradient(from 45deg, #A5EBFF, #C8AAFF, #FFBEE1, #FFF6C8, #A5EBFF);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; }
+  .mark { position: absolute; inset: 0; width: 1024px; height: 1024px; }
+  body.logo .plate, body.logo .rim { display: none; }
+</style>
+</head>
+<body>
+  <div class="plate">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <rect width="1600" height="1000" fill="#3F7ED0"/>
+      <path d="M0 430 C330 320 660 380 980 470 S1420 560 1600 490 V1000 H0Z" fill="#FFFFFF"/>
+      <path d="M0 500 C320 390 670 460 990 560 S1420 660 1600 590 V1000 H0Z" fill="#FFD36B"/>
+      <path d="M0 560 C300 440 640 530 970 650 S1400 770 1600 700 V1000 H0Z" fill="#F7934A"/>
+      <path d="M0 290 C190 230 400 330 580 500 S860 830 1120 1000 H0Z" fill="#EC5470"/>
+      <path d="M0 720 C160 660 320 740 450 870 S560 1000 640 1000 H0Z" fill="#9A4FB0"/>
+    </svg>
+    <div class="frost"></div>
+  </div>
+  <div class="rim"></div>
+  <svg class="mark" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- userSpaceOnUse: a straight vertical line has a zero-width box, so bounding-box gradients would not paint -->
+      <linearGradient id="trunk" gradientUnits="userSpaceOnUse" x1="392" y1="330" x2="392" y2="700">
+        <stop offset="0" stop-color="#22B04B"/>
+        <stop offset="1" stop-color="#1A6BB5"/>
+      </linearGradient>
+      <linearGradient id="branch" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#F37321"/>
+        <stop offset=".55" stop-color="#F9AD1B"/>
+        <stop offset="1" stop-color="#22B04B"/>
+      </linearGradient>
+      <linearGradient id="sheen" gradientUnits="userSpaceOnUse" x1="352" y1="0" x2="432" y2="0">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset=".35" stop-color="#fff" stop-opacity=".55"/>
+        <stop offset=".65" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#13204f" flood-opacity=".36"/>
+      </filter>
+      <!-- A commit: an isometric cube like the UteamUP logo, centred on 0,0 -->
+      <g id="cube">
+        <polygon points="0,-112 97,-56 0,0 -97,-56" fill="var(--top)"/>
+        <polygon points="-97,-56 0,0 0,112 -97,56" fill="var(--left)"/>
+        <polygon points="0,0 97,-56 97,56 0,112" fill="var(--right)"/>
+        <polygon points="0,-112 97,-56 97,56 0,112 -97,56 -97,-56" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="6" stroke-linejoin="round"/>
+      </g>
+    </defs>
+    <g filter="url(#lift)">
+      <!-- Trunk and the branch curving out to the right -->
+      <path d="M392 330 L392 700" stroke="url(#trunk)" stroke-width="88" stroke-linecap="round" fill="none"/>
+      <path d="M640 362 C640 520 392 470 392 610" stroke="url(#branch)" stroke-width="88" stroke-linecap="round" fill="none"/>
+      <path d="M380 360 L380 670" stroke="url(#sheen)" stroke-width="44" stroke-linecap="round" fill="none"/>
+      <use href="#cube" transform="translate(392 300) scale(.9)" style="--top:#F3EC23;--left:#22B04B;--right:#1A6BB5"/>
+      <use href="#cube" transform="translate(392 735) scale(.9)" style="--top:#6FB2F2;--left:#1A6BB5;--right:#2A3480"/>
+      <use href="#cube" transform="translate(640 335) scale(.9)" style="--top:#FFD25A;--left:#F37321;--right:#F9AD1B"/>
+    </g>
+  </svg>
+  <script>
+    if (location.hash === '#logo') {
+      document.body.className = 'logo';
+      document.querySelector('.mark').setAttribute('viewBox', '262 158 520 720');
+    }
+  </script>
+</body>
+</html>
