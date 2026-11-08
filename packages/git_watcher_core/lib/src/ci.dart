@@ -17,6 +17,7 @@ class CiStatus {
     this.finishedAt,
     this.url,
     this.runId,
+    this.failedRuns = const [],
     this.expectedEnd,
   });
 
@@ -24,6 +25,9 @@ class CiStatus {
 
   /// The run to read logs from: the failed one, or the one still running.
   final int? runId;
+
+  /// Every failed workflow run of the commit, so a fix sees all of them and not only the first.
+  final List<int> failedRuns;
   final CiState state;
   final int doneJobs;
   final int totalJobs;
@@ -79,10 +83,10 @@ class CiService {
     if (gh == null || branch.startsWith('HEAD')) return CiStatus.none;
     final listed = await _gh(repo, [
       'run', 'list', '--branch', branch, '--limit', '40', '--json',
-      'databaseId,headSha,status,conclusion,createdAt,updatedAt,url,workflowName',
+      'databaseId,headSha,status,conclusion,createdAt,updatedAt,url,workflowName,event',
     ]);
     if (listed == null) return CiStatus.none;
-    final runs = (jsonDecode(listed) as List).cast<Map<String, dynamic>>();
+    final runs = ownRuns((jsonDecode(listed) as List).cast<Map<String, dynamic>>());
     if (runs.isEmpty) return CiStatus.none;
 
     final sha = runs.first['headSha'];
@@ -121,6 +125,7 @@ class CiService {
         finishedAt: finished.toLocal(),
         url: failed.first['url'] as String?,
         runId: id,
+        failedRuns: [for (final run in failed) run['databaseId'] as int],
       );
     }
 
@@ -153,12 +158,23 @@ class CiService {
   }
 
   /// The output of the failed steps of a run, newest lines kept, for an AI agent to read.
-  Future<String> failedLog(String repo, int runId, {int maxChars = 20000}) async {
-    final log = await _gh(repo, ['run', 'view', '$runId', '--log-failed']);
-    if (log == null || log.trim().isEmpty) {
-      throw StateError('Could not read the failed log of run $runId (is gh signed in?)');
+  /// Runs the repository's own workflows started, newest first. GitHub's dynamic runs (Dependabot updates,
+  /// default code scanning) are left out: they are not the project's pipeline and code cannot turn them green.
+  static List<Map<String, dynamic>> ownRuns(List<Map<String, dynamic>> runs) =>
+      runs.where((run) => run['event'] != 'dynamic').toList();
+
+  /// The failed steps of each run, the newest lines of each when they are long.
+  Future<String> failedLog(String repo, List<int> runIds, {int maxChars = 24000}) async {
+    final share = maxChars ~/ runIds.length;
+    final parts = <String>[];
+    for (final runId in runIds) {
+      final log = await _gh(repo, ['run', 'view', '$runId', '--log-failed']);
+      if (log == null || log.trim().isEmpty) continue;
+      final text = log.length > share ? '[log truncated]\n${log.substring(log.length - share)}' : log;
+      parts.add(runIds.length == 1 ? text : '=== Workflow run $runId ===\n$text');
     }
-    return log.length > maxChars ? '[log truncated]\n${log.substring(log.length - maxChars)}' : log;
+    if (parts.isEmpty) throw StateError('Could not read the failed logs of runs ${runIds.join(', ')} (is gh signed in?)');
+    return parts.join('\n\n');
   }
 
   Future<List<Map<String, dynamic>>> _jobs(String repo, int runId) async {

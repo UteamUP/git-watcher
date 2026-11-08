@@ -129,33 +129,41 @@ class AiHelper extends ChangeNotifier {
 
   Future<(bool, String)> _fixCiOne(RepoState repo) async {
     final l = watcher.l10n;
-    final runId = repo.ci.runId!;
+    final runs = repo.ci.failedRuns.isEmpty ? [repo.ci.runId!] : repo.ci.failedRuns;
     repo.busy = l.topBusyFixingCi;
     watcher.notify();
     var fixed = false;
     var outcome = l.topCiFixFailed;
     final headBefore = '${repo.status?.lastCommitAt}|${repo.status?.lastCommitSubject}';
+    // Work that was uncommitted before the fix is the user's: it may stay, and it does not count against the fix.
+    final dirtyBefore = {...?repo.status?.files.map((f) => f.path)};
     try {
       var log = '';
       await _step(repo, Icons.receipt_long_rounded, l.topHelperFetchingCiLog, () async {
-        log = await watcher.ci.failedLog(repo.path, runId);
+        log = await watcher.ci.failedLog(repo.path, runs);
       });
       final (step, result) = await _runAgent(repo, '''
-The latest GitHub Actions run for this branch failed${repo.ci.failedJob == null ? '' : ' in the job "${repo.ci.failedJob}"'}.
-Output of the failed steps (newest lines):
+GitHub Actions failed for the newest commit on this branch${repo.ci.failedJob == null ? '' : ', first in the job "${repo.ci.failedJob}"'}.
+Output of the failed steps of every failed workflow run (newest lines):
 
 $log
 
-Find the root cause in this repository and fix it with the smallest sensible change.
-Commit with a Conventional Commit message, rebase on the upstream (git pull --rebase --autostash) and push.
+Several jobs or workflows may have failed. Find the root cause of each one and fix every failure that code in
+this repository causes, with the smallest sensible change.
+Files that were already uncommitted belong to the user: leave them as they are and commit only the files you
+changed (git add <path>, never git add -A or git commit -a).
+Commit with a Conventional Commit message whose body uses real line breaks (git commit -F - with a here-document,
+never a literal \\n), rebase on the upstream (git pull --rebase --autostash) and push.
 Never force-push, never use --no-verify, never amend existing commits, and never skip or disable tests to make CI pass.
-If the failure is not caused by code in this repository (a missing secret, an outage, a flaky runner), change nothing and explain the cause.
-End with one short sentence that says what you did.''');
+If a failure needs something outside this repository (a secret, a cloud permission, a repository setting, an
+outage or a flaky runner), do not work around it: name exactly what has to change and where.
+End with one short sentence that says what you fixed and what, if anything, the user still has to change.''');
       // Judge by what happened to the repository, not by what the agent says.
       await watcher.refreshRepo(repo.path);
       final changed = '${repo.status?.lastCommitAt}|${repo.status?.lastCommitSubject}' != headBefore;
       if (result != null && !result.failed) {
-        fixed = changed && repo.ahead == 0 && !repo.dirty;
+        final leftOver = (repo.status?.files ?? const <FileChange>[]).where((f) => !dirtyBefore.contains(f.path));
+        fixed = changed && repo.ahead == 0 && leftOver.isEmpty;
         if (!fixed) {
           final said = agentEventText(l, result);
           step

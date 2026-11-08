@@ -140,6 +140,15 @@ void main() {
     expect(CiService.estimateEnd([{'workflowName': 'New', 'createdAt': '2026-11-08T12:00:00Z'}], history), isNull);
   });
 
+  test('CI leaves out GitHub dynamic runs such as Dependabot updates', () {
+    final runs = [
+      {'databaseId': 3, 'headSha': 'abc', 'event': 'dynamic', 'workflowName': 'Dependabot Updates', 'conclusion': 'failure'},
+      {'databaseId': 2, 'headSha': 'abc', 'event': 'push', 'workflowName': 'CI', 'conclusion': 'success'},
+      {'databaseId': 1, 'headSha': 'old', 'event': 'push', 'workflowName': 'CI', 'conclusion': 'failure'},
+    ];
+    expect(CiService.ownRuns(runs).map((r) => r['databaseId']), [2, 1]);
+  });
+
   test('repoDisplayName drops the UteamUP_ prefix only', () {
     expect(repoDisplayName('/x/UteamUP_Backend'), 'Backend');
     expect(repoDisplayName('/x/ActiveProjects/'), 'ActiveProjects');
