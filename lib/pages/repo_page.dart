@@ -17,8 +17,12 @@ import '../widgets/file_row.dart';
 import '../widgets/menus.dart';
 import '../widgets/repo_icon.dart';
 
-void openRepo(BuildContext context, WatcherController controller, RepoState repo) {
-  Navigator.of(context).push(PageRouteBuilder<void>(
+void openRepo(BuildContext context, WatcherController controller, RepoState repo) =>
+    openRepoWith(Navigator.of(context), controller, repo);
+
+/// Opens the repository page on a navigator the caller already has, for the menu bar panel.
+void openRepoWith(NavigatorState navigator, WatcherController controller, RepoState repo) {
+  navigator.push(PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 260),
     reverseTransitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (_, _, _) => RepoPage(controller: controller, repo: repo),

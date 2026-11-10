@@ -1411,6 +1411,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The AI agent could not start: {error}'**
   String topAgentCouldNotStart(String error);
+
+  /// No description provided for @mbOpenApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open GIT Watcher'**
+  String get mbOpenApp;
+
+  /// No description provided for @mbRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get mbRefresh;
+
+  /// No description provided for @mbQuit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit GIT Watcher'**
+  String get mbQuit;
+
+  /// No description provided for @mbAllClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is in order'**
+  String get mbAllClean;
+
+  /// No description provided for @mbAllCleanBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to commit, nothing to push, no CI running.'**
+  String get mbAllCleanBody;
+
+  /// No description provided for @mbAiShip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI commit & push'**
+  String get mbAiShip;
+
+  /// No description provided for @mbShipAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI writes the message, commits and pushes every repository with work waiting'**
+  String get mbShipAllTooltip;
+
+  /// No description provided for @mbPush.
+  ///
+  /// In en, this message translates to:
+  /// **'Push {n}'**
+  String mbPush(int n);
+
+  /// No description provided for @mbPushOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Push'**
+  String get mbPushOnly;
+
+  /// No description provided for @mbBehind.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} behind'**
+  String mbBehind(int n);
+
+  /// No description provided for @mbOpenRepo.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in the app'**
+  String get mbOpenRepo;
+
+  /// No description provided for @mbFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 file} other{{n} files}}'**
+  String mbFiles(int n);
+
+  /// No description provided for @mbMoreFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 more file} other{{n} more files}}'**
+  String mbMoreFiles(int n);
+
+  /// No description provided for @mbFooterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-click the menu bar icon to open the window'**
+  String get mbFooterHint;
+
+  /// No description provided for @mbShipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{repo}: committed and pushed'**
+  String mbShipped(String repo);
+
+  /// No description provided for @mbShipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{repo}: could not be shipped'**
+  String mbShipFailed(String repo);
+
+  /// No description provided for @mbPushed.
+  ///
+  /// In en, this message translates to:
+  /// **'{repo}: pushed'**
+  String mbPushed(String repo);
 }
 
 class _AppLocalizationsDelegate

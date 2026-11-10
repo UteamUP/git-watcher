@@ -49,6 +49,27 @@ class AiHelper extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Ships one repository: AI message, commit, rebase and push.
+  ///
+  /// The menu bar panel calls this, so it answers whether the repository ended up clean and pushed.
+  Future<bool> ship(RepoState repo) async {
+    if (running) return false;
+    running = true;
+    visible = true;
+    steps.clear();
+    summary = watcher.l10n.topHelperWorkingOn(1);
+    notifyListeners();
+    var ok = false;
+    try {
+      ok = await _ship(repo);
+    } finally {
+      running = false;
+      summary = ok ? watcher.l10n.topHelperDone(1, 1) : '';
+      notifyListeners();
+    }
+    return ok;
+  }
+
   Future<bool> _ship(RepoState repo) async {
     final service = watcher.service;
     final l = watcher.l10n;

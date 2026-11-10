@@ -218,5 +218,22 @@
   "topAgentNotFinished": "Ekki lokið: {text}",
   "topAgentWorking": "{agent} vinnur…",
   "topAgentFinished": "AI agent kláraði",
-  "topAgentCouldNotStart": "AI agent gat ekki byrjað: {error}"
+  "topAgentCouldNotStart": "AI agent gat ekki byrjað: {error}",
+  "mbOpenApp": "Opna GIT Watcher",
+  "mbRefresh": "Endurhlaða",
+  "mbQuit": "Loka GIT Watcher",
+  "mbAllClean": "Allt í lagi",
+  "mbAllCleanBody": "Ekkert að commita, ekkert að pusha, engin CI í gangi.",
+  "mbAiShip": "AI commit & push",
+  "mbShipAllTooltip": "AI skrifar skilaboð, commit-ar og pushar öll repo sem hafa verk í bið",
+  "mbPush": "Push {n}",
+  "mbPushOnly": "Push",
+  "mbBehind": "{n} eftir",
+  "mbOpenRepo": "Opna í appinu",
+  "mbFiles": "{n} skrár",
+  "mbMoreFiles": "{n} skrár til viðbótar",
+  "mbFooterHint": "Tvísmelt á iconið í menubar til að opna gluggann",
+  "mbShipped": "{repo}: committað og pushað",
+  "mbShipFailed": "{repo}: ekki hægt að afgreiða",
+  "mbPushed": "{repo}: pushað"
 }

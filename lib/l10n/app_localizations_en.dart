@@ -919,4 +919,84 @@ class AppLocalizationsEn extends AppLocalizations {
   String topAgentCouldNotStart(String error) {
     return 'The AI agent could not start: $error';
   }
+
+  @override
+  String get mbOpenApp => 'Open GIT Watcher';
+
+  @override
+  String get mbRefresh => 'Refresh';
+
+  @override
+  String get mbQuit => 'Quit GIT Watcher';
+
+  @override
+  String get mbAllClean => 'Everything is in order';
+
+  @override
+  String get mbAllCleanBody =>
+      'Nothing to commit, nothing to push, no CI running.';
+
+  @override
+  String get mbAiShip => 'AI commit & push';
+
+  @override
+  String get mbShipAllTooltip =>
+      'AI writes the message, commits and pushes every repository with work waiting';
+
+  @override
+  String mbPush(int n) {
+    return 'Push $n';
+  }
+
+  @override
+  String get mbPushOnly => 'Push';
+
+  @override
+  String mbBehind(int n) {
+    return '$n behind';
+  }
+
+  @override
+  String get mbOpenRepo => 'Open in the app';
+
+  @override
+  String mbFiles(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n files',
+      one: '1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mbMoreFiles(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n more files',
+      one: '1 more file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mbFooterHint =>
+      'Double-click the menu bar icon to open the window';
+
+  @override
+  String mbShipped(String repo) {
+    return '$repo: committed and pushed';
+  }
+
+  @override
+  String mbShipFailed(String repo) {
+    return '$repo: could not be shipped';
+  }
+
+  @override
+  String mbPushed(String repo) {
+    return '$repo: pushed';
+  }
 }

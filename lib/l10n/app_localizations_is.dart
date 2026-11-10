@@ -866,4 +866,71 @@ class AppLocalizationsIs extends AppLocalizations {
   String topAgentCouldNotStart(String error) {
     return 'AI agent gat ekki byrjað: $error';
   }
+
+  @override
+  String get mbOpenApp => 'Opna GIT Watcher';
+
+  @override
+  String get mbRefresh => 'Endurhlaða';
+
+  @override
+  String get mbQuit => 'Loka GIT Watcher';
+
+  @override
+  String get mbAllClean => 'Allt í lagi';
+
+  @override
+  String get mbAllCleanBody =>
+      'Ekkert að commita, ekkert að pusha, engin CI í gangi.';
+
+  @override
+  String get mbAiShip => 'AI commit & push';
+
+  @override
+  String get mbShipAllTooltip =>
+      'AI skrifar skilaboð, commit-ar og pushar öll repo sem hafa verk í bið';
+
+  @override
+  String mbPush(int n) {
+    return 'Push $n';
+  }
+
+  @override
+  String get mbPushOnly => 'Push';
+
+  @override
+  String mbBehind(int n) {
+    return '$n eftir';
+  }
+
+  @override
+  String get mbOpenRepo => 'Opna í appinu';
+
+  @override
+  String mbFiles(int n) {
+    return '$n skrár';
+  }
+
+  @override
+  String mbMoreFiles(int n) {
+    return '$n skrár til viðbótar';
+  }
+
+  @override
+  String get mbFooterHint => 'Tvísmelt á iconið í menubar til að opna gluggann';
+
+  @override
+  String mbShipped(String repo) {
+    return '$repo: committað og pushað';
+  }
+
+  @override
+  String mbShipFailed(String repo) {
+    return '$repo: ekki hægt að afgreiða';
+  }
+
+  @override
+  String mbPushed(String repo) {
+    return '$repo: pushað';
+  }
 }

@@ -784,5 +784,71 @@
         "type": "String"
       }
     }
+  },
+  "mbOpenApp": "Open GIT Watcher",
+  "mbRefresh": "Refresh",
+  "mbQuit": "Quit GIT Watcher",
+  "mbAllClean": "Everything is in order",
+  "mbAllCleanBody": "Nothing to commit, nothing to push, no CI running.",
+  "mbAiShip": "AI commit & push",
+  "mbShipAllTooltip": "AI writes the message, commits and pushes every repository with work waiting",
+  "mbPush": "Push {n}",
+  "@mbPush": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mbPushOnly": "Push",
+  "mbBehind": "{n} behind",
+  "@mbBehind": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mbOpenRepo": "Open in the app",
+  "mbFiles": "{n, plural, =1{1 file} other{{n} files}}",
+  "@mbFiles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mbMoreFiles": "{n, plural, =1{1 more file} other{{n} more files}}",
+  "@mbMoreFiles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mbFooterHint": "Double-click the menu bar icon to open the window",
+  "mbShipped": "{repo}: committed and pushed",
+  "@mbShipped": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "mbShipFailed": "{repo}: could not be shipped",
+  "@mbShipFailed": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "mbPushed": "{repo}: pushed",
+  "@mbPushed": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
   }
 }

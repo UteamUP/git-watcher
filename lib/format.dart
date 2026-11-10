@@ -33,6 +33,10 @@ String kindLabel(AppLocalizations l, ChangeKind kind) => switch (kind) {
       ChangeKind.conflicted => l.kindConflicted,
     };
 
+/// The change kind a name stands for, for data that travelled over a channel.
+ChangeKind changeKindOf(String name) =>
+    ChangeKind.values.firstWhere((kind) => kind.name == name, orElse: () => ChangeKind.modified);
+
 String ciLabel(AppLocalizations l, CiStatus ci) => switch (ci.state) {
       CiState.none => l.ciNone,
       CiState.queued => [l.ciQueued, if (ci.remaining != null) timeLeft(l, ci.remaining!)].join(' · '),
