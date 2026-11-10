@@ -19,33 +19,51 @@ class MenuBarPanelPage extends StatefulWidget {
   State<MenuBarPanelPage> createState() => _MenuBarPanelPageState();
 }
 
-/// The colours that read on the material of macOS, in the look the system is in.
+/// The colours that read on the panel, in the look the system is in.
 class _Ink {
-  const _Ink({required this.text, required this.muted, required this.hairline, required this.hover});
+  const _Ink({
+    required this.text,
+    required this.muted,
+    required this.hairline,
+    required this.hover,
+    required this.surface,
+  });
 
   final Color text;
   final Color muted;
   final Color hairline;
   final Color hover;
 
+  /// The panel draws its own surface, so the text always reads whatever is behind it.
+  final Color surface;
+
   static const light = _Ink(
-    text: Color(0xFF1B2033),
-    muted: Color(0xFF5C6379),
+    text: Color(0xFF161B2C),
+    muted: Color(0xFF4C5468),
     hairline: Color(0x1F1F2547),
     hover: Color(0x141F2547),
+    surface: Color(0xF2F4F7FB),
   );
 
   static const dark = _Ink(
-    text: Color(0xFFF2F4F9),
-    muted: Color(0xFFA7AEC2),
-    hairline: Color(0x26FFFFFF),
+    text: Color(0xFFF4F6FB),
+    muted: Color(0xFFC2C9DB),
+    hairline: Color(0x2EFFFFFF),
     hover: Color(0x1FFFFFFF),
+    surface: Color(0xF01E2230),
   );
 }
 
 class _MenuBarPanelPageState extends State<MenuBarPanelPage> {
   MenuBarSnapshot? _snapshot;
   bool _dark = false;
+
+  /// How tall the panel may grow, told by the native side.
+  double _maxHeight = 900;
+
+  /// The header and the list are measured, so the panel can be as tall as the work needs.
+  final _headerKey = GlobalKey();
+  final _listKey = GlobalKey();
 
   _Ink get ink => _dark ? _Ink.dark : _Ink.light;
 
@@ -56,12 +74,31 @@ class _MenuBarPanelPageState extends State<MenuBarPanelPage> {
       (map) {
         if (!mounted) return;
         setState(() => _snapshot = MenuBarSnapshot.fromJson(map));
+        _reportHeight();
       },
       onAppearance: (name) {
         if (!mounted) return;
         setState(() => _dark = name == 'dark');
+        _reportHeight();
+      },
+      onMaxHeight: (height) {
+        if (!mounted) return;
+        setState(() => _maxHeight = height);
+        _reportHeight();
       },
     );
+  }
+
+  /// Tells the native side how tall the panel wants to be, so everything is seen without scrolling.
+  void _reportHeight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final header = _headerKey.currentContext?.size?.height ?? 0;
+      final list = _listKey.currentContext?.size?.height ?? 0;
+      if (header == 0 || list == 0) return;
+      // The 20 is the air around the card.
+      MenuBarPanelBridge.resize(header + 12 + list + 34);
+    });
   }
 
   @override
@@ -70,19 +107,43 @@ class _MenuBarPanelPageState extends State<MenuBarPanelPage> {
     final colors = ink;
     return Material(
       color: Colors.transparent,
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 0),
-          child: Column(children: [
-            _Header(snapshot: snapshot, ink: colors),
-            const SizedBox(height: 12),
-            _ShipButton(snapshot: snapshot),
-          ]),
+      child: ConstrainedBox(
+        // The panel is as tall as the work needs, but never taller than the screen.
+        constraints: BoxConstraints(maxHeight: _maxHeight),
+        child: Padding(
+          // A little air around the card, so its own shadow has room.
+          padding: const EdgeInsets.all(10),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(color: Color(0x553C1E50), blurRadius: 22, spreadRadius: -6, offset: Offset(0, 10)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: ColoredBox(
+                // The panel has its own surface: without it the text does not read.
+                color: colors.surface,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Padding(
+                    key: _headerKey,
+                    padding: const EdgeInsets.fromLTRB(14, 12, 12, 0),
+                    child: Column(children: [
+                      _Header(snapshot: snapshot, ink: colors),
+                      const SizedBox(height: 12),
+                      _ShipButton(snapshot: snapshot),
+                    ]),
+                  ),
+                  // A little air between the information and the list.
+                  const SizedBox(height: 12),
+                  Flexible(child: _Body(snapshot: snapshot, ink: colors, listKey: _listKey)),
+                ]),
+              ),
+            ),
+          ),
         ),
-        // A little air between the information and the list that scrolls.
-        const SizedBox(height: 12),
-        Expanded(child: _Body(snapshot: snapshot, ink: colors)),
-      ]),
+      ),
     );
   }
 }
@@ -100,15 +161,21 @@ class _Header extends StatelessWidget {
     return Row(children: [
       const LogoTile(size: 24),
       const SizedBox(width: 9),
-      Text('GIT Watcher', style: Txt.strong.copyWith(fontSize: 13, color: ink.text)),
-      const SizedBox(width: 5),
-      Text('v$appVersion', style: Txt.muted.copyWith(fontSize: 10, color: ink.muted)),
+      Flexible(
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(
+            child: Text('GIT Watcher', style: Txt.strong.copyWith(fontSize: 13, color: ink.text), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 5),
+          Text('v$appVersion', style: Txt.muted.copyWith(fontSize: 10, color: ink.muted)),
+        ]),
+      ),
       const Spacer(),
       if (s != null) ...[
-        if (s.dirty > 0) _Dot(count: s.dirty, color: Palette.orange, ink: ink),
-        if (s.ahead > 0) _Dot(count: s.ahead, color: Palette.blue, ink: ink),
-        if (s.ciRunning > 0) _Dot(count: s.ciRunning, color: Palette.blue, ink: ink),
-        if (s.ciFailed > 0) _Dot(count: s.ciFailed, color: Palette.red, ink: ink),
+        if (s.dirty > 0) _Dot(count: s.dirty, color: Palette.orange, icon: Icons.difference_outlined, ink: ink),
+        if (s.ahead > 0) _Dot(count: s.ahead, color: Palette.blue, icon: Icons.north_rounded, ink: ink),
+        if (s.ciRunning > 0) _Dot(count: s.ciRunning, color: Palette.blue, icon: Icons.autorenew_rounded, ink: ink),
+        if (s.ciFailed > 0) _Dot(count: s.ciFailed, color: Palette.red, icon: Icons.cancel_outlined, ink: ink),
         const SizedBox(width: 10),
       ],
       _IconButton(
@@ -181,18 +248,23 @@ class _IconButtonState extends State<_IconButton> {
 
 /// A count in a small coloured pill.
 class _Dot extends StatelessWidget {
-  const _Dot({required this.count, required this.color, required this.ink});
+  const _Dot({required this.count, required this.color, required this.icon, required this.ink});
 
   final int count;
   final Color color;
+  final IconData icon;
   final _Ink ink;
 
   @override
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(left: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(color: color.withValues(alpha: .18), borderRadius: BorderRadius.circular(7)),
-        child: Text('$count', style: Txt.strong.copyWith(fontSize: 11, color: color)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text('$count', style: Txt.strong.copyWith(fontSize: 11, color: color)),
+        ]),
       );
 }
 
@@ -223,10 +295,11 @@ class _ShipButton extends StatelessWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.snapshot, required this.ink});
+  const _Body({required this.snapshot, required this.ink, required this.listKey});
 
   final MenuBarSnapshot? snapshot;
   final _Ink ink;
+  final Key listKey;
 
   @override
   Widget build(BuildContext context) {
@@ -246,15 +319,22 @@ class _Body extends StatelessWidget {
         ]),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-      itemCount: s.repos.length,
-      itemBuilder: (context, i) => _RepoRow(repo: s.repos[i], ink: ink, last: i == s.repos.length - 1),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        child: Column(
+          key: listKey,
+          children: [
+            for (var i = 0; i < s.repos.length; i++)
+              _RepoRow(repo: s.repos[i], ink: ink, last: i == s.repos.length - 1),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// One repository: the work waiting, the pipeline and nothing else.
+/// One repository: the work waiting, the buttons and the pipeline.
 class _RepoRow extends StatelessWidget {
   const _RepoRow({required this.repo, required this.ink, required this.last});
 
@@ -265,6 +345,9 @@ class _RepoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
+    final busy = repo.busy;
+    final canShip = repo.dirty && busy == null;
+    final canPush = repo.ahead > 0 && busy == null;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -276,63 +359,54 @@ class _RepoRow extends StatelessWidget {
             Row(children: [
               RepoIcon(name: repo.name, iconPath: repo.iconPath, size: 24),
               const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  repo.name,
-                  style: Txt.strong.copyWith(fontSize: 12.5, color: ink.text),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+              Expanded(child: _Title(repo: repo, ink: ink)),
               if (repo.ahead > 0)
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.north_rounded, size: 12, color: Palette.blue),
                   const SizedBox(width: 1),
                   Text('${repo.ahead}', style: Txt.strong.copyWith(fontSize: 11.5, color: Palette.blue)),
                 ]),
-              if (repo.busy != null)
-                const SizedBox(width: 8)
-              else if (repo.ciRunning)
+              if (busy != null) ...[
                 const SizedBox(width: 8),
-              if (repo.busy != null)
                 const SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: Palette.blue)),
-            ]),
-            const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.call_split_rounded, size: 11, color: Palette.inkFaint),
-              const SizedBox(width: 4),
-              Text(
-                repo.dirty ? '${repo.branch}*' : repo.branch,
-                style: Txt.body.copyWith(fontSize: 11, color: repo.dirty ? Palette.orange : ink.muted),
-              ),
-              if (repo.dirty) ...[
-                const SizedBox(width: 8),
-                Text(l.mbFiles(repo.fileCount), style: Txt.body.copyWith(fontSize: 11, color: ink.muted)),
-                if (repo.added > 0) ...[
-                  const SizedBox(width: 5),
-                  Text('+${repo.added}', style: Txt.strong.copyWith(fontSize: 11, color: Palette.addedText)),
-                ],
-                if (repo.deleted > 0) ...[
-                  const SizedBox(width: 4),
-                  Text('−${repo.deleted}', style: Txt.strong.copyWith(fontSize: 11, color: Palette.deletedText)),
-                ],
-              ] else if (repo.behind > 0) ...[
-                const SizedBox(width: 8),
-                Text(l.mbBehind(repo.behind), style: Txt.body.copyWith(fontSize: 11, color: Palette.amber)),
               ],
             ]),
-            if (repo.files.isNotEmpty) ...[
-              const SizedBox(height: 3),
-              Text(
-                repo.files.map((file) => file.name).join(' · '),
-                style: Txt.body.copyWith(fontSize: 11, color: ink.muted),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            if (repo.ciText != null) ...[
-              const SizedBox(height: 6),
+            if (canShip || canPush) ...[
+              const SizedBox(height: 8),
               Row(children: [
+                if (canShip)
+                  Expanded(
+                    child: GlassButton(
+                      onPressed: () => MenuBarPanelBridge.action('aiShip', path: repo.path),
+                      icon: Icons.auto_awesome_rounded,
+                      label: l.mbAiCommit,
+                      tone: GlassTone.rose,
+                      height: 28,
+                      radius: 8,
+                      expand: true,
+                      tooltip: l.mbAiCommitTooltip,
+                    ),
+                  ),
+                if (canShip && canPush) const SizedBox(width: 6),
+                if (canPush)
+                  Expanded(
+                    child: GlassButton(
+                      onPressed: () => MenuBarPanelBridge.action('push', path: repo.path),
+                      icon: Icons.north_rounded,
+                      label: l.mbPush(repo.ahead),
+                      tone: GlassTone.blue,
+                      height: 28,
+                      radius: 8,
+                      expand: true,
+                    ),
+                  ),
+              ]),
+            ],
+            // A pipeline that passed says nothing new, so only the ones at work or broken show.
+            if (repo.ciText != null) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                const SizedBox(width: 33),
                 Icon(_ciIcon(repo.ciState), size: 12, color: _ciColor(repo.ciState)),
                 const SizedBox(width: 5),
                 Expanded(
@@ -364,6 +438,43 @@ class _RepoRow extends StatelessWidget {
           ]),
         ),
       ),
+    );
+  }
+}
+
+/// The name of the repository and what is waiting for it, on one line.
+class _Title extends StatelessWidget {
+  const _Title({required this.repo, required this.ink});
+
+  final MenuBarRepo repo;
+  final _Ink ink;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final small = Txt.body.copyWith(fontSize: 11, color: ink.muted);
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: repo.name, style: Txt.strong.copyWith(fontSize: 12.5, color: ink.text)),
+        TextSpan(text: '  ', style: small),
+        TextSpan(
+          text: repo.dirty ? '${repo.branch}*' : repo.branch,
+          style: small.copyWith(color: repo.dirty ? Palette.orange : ink.muted),
+        ),
+        if (repo.dirty) ...[
+          TextSpan(text: ' · ', style: small),
+          TextSpan(text: l.mbFiles(repo.fileCount), style: small),
+          if (repo.added > 0)
+            TextSpan(text: ' +${repo.added}', style: small.copyWith(color: Palette.addedText, fontWeight: FontWeight.w500)),
+          if (repo.deleted > 0)
+            TextSpan(text: ' −${repo.deleted}', style: small.copyWith(color: Palette.deletedText, fontWeight: FontWeight.w500)),
+        ] else if (repo.behind > 0) ...[
+          TextSpan(text: ' · ', style: small),
+          TextSpan(text: l.mbBehind(repo.behind), style: small.copyWith(color: Palette.amber)),
+        ],
+      ]),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

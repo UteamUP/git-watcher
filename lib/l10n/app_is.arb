@@ -225,6 +225,8 @@
   "mbAllClean": "Allt í lagi",
   "mbAllCleanBody": "Ekkert að commita, ekkert að pusha, engin CI í gangi.",
   "mbAiShip": "AI commit & push",
+  "mbAiCommit": "AI commit",
+  "mbAiCommitTooltip": "AI skrifar skilaboð, commit-ar og pushar þetta repo",
   "mbShipAllTooltip": "AI skrifar skilaboð, commit-ar og pushar öll repo sem hafa verk í bið",
   "mbPush": "Push {n}",
   "mbPushOnly": "Push",

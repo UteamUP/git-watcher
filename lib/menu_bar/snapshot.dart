@@ -8,7 +8,6 @@ class MenuBarRepo {
     required this.name,
     this.iconPath,
     required this.branch,
-    required this.files,
     required this.fileCount,
     required this.added,
     required this.deleted,
@@ -18,7 +17,6 @@ class MenuBarRepo {
     required this.ciProgress,
     this.ciText,
     this.busy,
-    this.lastCommit,
   });
 
   final String path;
@@ -26,10 +24,7 @@ class MenuBarRepo {
   final String? iconPath;
   final String branch;
 
-  /// The first few changed files, so the panel can name them.
-  final List<MenuBarFile> files;
-
-  /// How many files changed in total, which can be more than [files] holds.
+  /// How many files changed.
   final int fileCount;
 
   final int added;
@@ -49,8 +44,6 @@ class MenuBarRepo {
   /// What the app is doing to this repository right now.
   final String? busy;
 
-  final String? lastCommit;
-
   bool get dirty => fileCount > 0;
 
   bool get ciRunning => ciState == 'running' || ciState == 'queued';
@@ -60,10 +53,6 @@ class MenuBarRepo {
         name: json['name'] as String? ?? '',
         iconPath: json['iconPath'] as String?,
         branch: json['branch'] as String? ?? '',
-        files: [
-          for (final file in (json['files'] as List? ?? const []))
-            MenuBarFile.fromJson((file as Map).cast<String, dynamic>()),
-        ],
         fileCount: json['fileCount'] as int? ?? 0,
         added: json['added'] as int? ?? 0,
         deleted: json['deleted'] as int? ?? 0,
@@ -73,7 +62,6 @@ class MenuBarRepo {
         ciProgress: (json['ciProgress'] as num?)?.toDouble() ?? 0,
         ciText: json['ciText'] as String?,
         busy: json['busy'] as String?,
-        lastCommit: json['lastCommit'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,7 +69,6 @@ class MenuBarRepo {
         'name': name,
         'iconPath': iconPath,
         'branch': branch,
-        'files': [for (final file in files) file.toJson()],
         'fileCount': fileCount,
         'added': added,
         'deleted': deleted,
@@ -91,27 +78,7 @@ class MenuBarRepo {
         'ciProgress': ciProgress,
         'ciText': ciText,
         'busy': busy,
-        'lastCommit': lastCommit,
       };
-}
-
-/// One changed file in the menu bar panel.
-class MenuBarFile {
-  const MenuBarFile({required this.path, required this.name, required this.kind});
-
-  final String path;
-  final String name;
-
-  /// The name of a ChangeKind: modified, added, deleted, renamed, untracked or conflicted.
-  final String kind;
-
-  factory MenuBarFile.fromJson(Map<String, dynamic> json) => MenuBarFile(
-        path: json['path'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        kind: json['kind'] as String? ?? 'modified',
-      );
-
-  Map<String, dynamic> toJson() => {'path': path, 'name': name, 'kind': kind};
 }
 
 /// Everything the menu bar panel shows at one moment.

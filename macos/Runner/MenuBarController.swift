@@ -13,14 +13,15 @@ final class MenuBarController: NSObject {
   /// The panel inside the menu bar window talks over this channel.
   static let panelChannelName = "gitwatcher/menubar/panel"
 
-  private static let panelSize = NSSize(width: 340, height: 660)
+  private static let panelWidth: CGFloat = 400
+  private static let panelGap: CGFloat = 8
   private static let iconSize: CGFloat = 17
 
   /// How long the mouse may be away before the panel closes.
   private static let closeDelay: TimeInterval = 2
 
   private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-  private var popover: NSPopover!
+  private var panel: NSPanel!
   private var panelEngine: FlutterEngine!
   private var panelChannel: FlutterMethodChannel!
   private var mainChannel: FlutterMethodChannel!
@@ -87,13 +88,10 @@ final class MenuBarController: NSObject {
     panelEngine = FlutterEngine(name: "gitwatcher-panel", project: nil, allowHeadlessExecution: false)
 
     let controller = FlutterViewController(engine: panelEngine, nibName: nil, bundle: nil)
-    // A clear background lets the popover of macOS show through the picture.
+    // A clear background lets the panel draw its own shape over the desktop.
     controller.backgroundColor = .clear
     controller.view.wantsLayer = true
     controller.view.layer?.isOpaque = false
-
-    // The engine only runs once a view controller is attached to it.
-    panelEngine.run(withEntrypoint: "menuBarPanel")
 
     panelChannel = FlutterMethodChannel(name: MenuBarController.panelChannelName, binaryMessenger: panelEngine.binaryMessenger)
     panelChannel.setMethodCallHandler { [weak self] call, result in
@@ -104,6 +102,7 @@ final class MenuBarController: NSObject {
       switch call.method {
       case "action":
         // The panel has no git of its own: the main app does the work and answers.
+        NSLog("[GITWatcher] the panel asks for \(call.arguments ?? "?")")
         self.mainChannel.invokeMethod("action", arguments: call.arguments)
         result(nil)
       case "getSnapshot":
@@ -111,6 +110,17 @@ final class MenuBarController: NSObject {
         result(self.latestSnapshot)
       case "getAppearance":
         result(self.appearanceName())
+      case "getMaxHeight":
+        result(self.maxPanelHeight)
+      case "resize":
+        // The panel asks for the height it needs, so all of it is seen without scrolling.
+        let args = call.arguments as? [String: Any] ?? [:]
+        let wanted = args["height"] as? Double ?? 0
+        let height = min(max(wanted, 240), self.maxPanelHeight)
+        if abs(self.panel.frame.height - height) > 1 {
+          self.panel.setFrame(self.panelFrame(height: height), display: true)
+        }
+        result(height)
       case "close":
         self.hidePanel()
         result(nil)
@@ -122,11 +132,33 @@ final class MenuBarController: NSObject {
       }
     }
 
-    // A popover is how macOS itself shows this: it closes the way a menu of the system closes.
-    popover = NSPopover()
-    popover.behavior = .transient
-    popover.contentSize = MenuBarController.panelSize
-    popover.contentViewController = controller
+    // The engine only runs once a view controller is attached to it.
+    panelEngine.run(withEntrypoint: "menuBarPanel")
+
+    // The panel is a window of its own, so its size and place are ours to decide.
+    // It needs a title bar in the style mask: a borderless window cannot become the key
+    // window, and then the clicks and the scroll wheel never reach the panel.
+    panel = NSPanel(
+      contentRect: NSRect(origin: .zero, size: NSSize(width: MenuBarController.panelWidth, height: 300)),
+      styleMask: [.titled, .resizable, .nonactivatingPanel],
+      backing: .buffered,
+      defer: false)
+    panel.titleVisibility = .hidden
+    panel.titlebarAppearsTransparent = true
+    panel.styleMask.insert(.fullSizeContentView)
+    panel.isFloatingPanel = true
+    panel.level = .popUpMenu
+    panel.backgroundColor = .clear
+    panel.isOpaque = false
+    panel.hasShadow = true
+    panel.isReleasedWhenClosed = false
+    panel.hidesOnDeactivate = false
+    panel.acceptsMouseMovedEvents = true
+    // The Flutter view does not take the first click, so the panel has to be the key window
+    // before the click lands. Otherwise the click is swallowed and nothing happens.
+    panel.becomesKeyOnlyIfNeeded = false
+    panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    panel.contentViewController = controller
 
     // The material follows the system, so the panel has to know when the look changes.
     appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
@@ -143,11 +175,17 @@ final class MenuBarController: NSObject {
     return match == .darkAqua ? "dark" : "light"
   }
 
+  /// How tall the panel may grow: the screen, with room for the menu bar above.
+  private var maxPanelHeight: Double {
+    let screen = NSScreen.screens.first ?? NSScreen.main
+    return max(320, (screen?.visibleFrame.height ?? 900) - 60)
+  }
+
   private func showPanel() {
-    guard let button = statusItem.button else { return }
-    if !popover.isShown {
-      popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-    }
+    positionPanel(height: panel.frame.height)
+    panel.orderFrontRegardless()
+    panel.makeKey()
+    NSLog("[GITWatcher] the panel opened, key=\(panel.isKeyWindow) frame=\(panel.frame)")
     startPolling()
   }
 
@@ -156,7 +194,35 @@ final class MenuBarController: NSObject {
     closeTimer = nil
     pollTimer?.invalidate()
     pollTimer = nil
-    popover.performClose(nil)
+    panel.orderOut(nil)
+    // The panel took the key from the window of the app, so it gets it back.
+    if NSApp.isActive {
+      for window in NSApp.windows where window is MainFlutterWindow {
+        window.makeKey()
+        break
+      }
+    }
+  }
+
+  /// Where the panel stands: under the menu bar item, centred on it and always on its screen.
+  private func panelFrame(height: CGFloat) -> NSRect {
+    let width = MenuBarController.panelWidth
+    guard let button = statusItem.button, let window = button.window else {
+      return NSRect(x: 0, y: 0, width: width, height: height)
+    }
+    let buttonFrame = window.convertToScreen(button.frame)
+    var frame = NSRect(x: buttonFrame.midX - width / 2, y: buttonFrame.minY - height - MenuBarController.panelGap, width: width, height: height)
+    if let screen = NSScreen.screens.first(where: { $0.frame.contains(buttonFrame) }) ?? NSScreen.main {
+      let visible = screen.visibleFrame
+      if frame.maxX > visible.maxX { frame.origin.x = visible.maxX - frame.width }
+      if frame.minX < visible.minX { frame.origin.x = visible.minX }
+      if frame.minY < visible.minY { frame.origin.y = visible.minY }
+    }
+    return frame
+  }
+
+  private func positionPanel(height: CGFloat) {
+    panel.setFrame(panelFrame(height: height), display: true)
   }
 
   /// The panel follows the mouse: it closes two seconds after the mouse has left both the panel
@@ -164,9 +230,20 @@ final class MenuBarController: NSObject {
   private func startPolling() {
     pollTimer?.invalidate()
     pollTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-      guard let self, self.popover.isShown else { return }
+      guard let self, self.panel.isVisible else { return }
       let mouse = NSEvent.mouseLocation
-      if self.panelFrame.contains(mouse) || self.menuArea.contains(mouse) {
+      if self.panel.frame.contains(mouse) {
+        // macOS sends the scroll wheel to the key window, so the panel has to be that one
+        // while the mouse is on it.
+        if !self.panel.isKeyWindow {
+          self.panel.makeKey()
+          NSLog("[GITWatcher] the panel is the key window")
+        }
+        self.closeTimer?.invalidate()
+        self.closeTimer = nil
+        return
+      }
+      if self.menuArea.contains(mouse) {
         self.closeTimer?.invalidate()
         self.closeTimer = nil
         return
@@ -176,11 +253,6 @@ final class MenuBarController: NSObject {
         self?.hidePanel()
       }
     }
-  }
-
-  /// Where the panel stands on the screen, in the coordinates of the screen.
-  private var panelFrame: NSRect {
-    popover.contentViewController?.view.window?.frame ?? .zero
   }
 
   /// The menu bar of the screen the mouse is on. The panel stays open as long as the mouse
@@ -289,10 +361,9 @@ final class MenuBarController: NSObject {
       showMainWindow()
       return
     }
-    // A click keeps the panel open. macOS may have closed it because the click was outside it,
-    // so it is opened again when that happens.
+    // A click keeps the panel open. It closes on its own when the mouse stays away.
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-      guard let self, !self.popover.isShown else { return }
+      guard let self, !self.panel.isVisible else { return }
       self.showPanel()
     }
   }

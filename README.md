@@ -12,6 +12,13 @@ push or CI run fails. An MCP server gives AI agents (Claude Code, Codex, Cursor)
   ahead/behind, and GitHub Actions progress in percent with time left while a run is going (estimated from
   the median of the last successful runs of the same workflow). Up to five columns; fewer as the window
   narrows.
+- **The menu bar keeps watch.** A small item in the macOS menu bar shows what is waiting: uncommitted
+  work, commits that are not pushed and the pipelines that are running or broken. Rest the mouse on it and
+  a panel opens with the repositories that have something to do and a button for each of them: ✨ AI writes
+  the message, commits and pushes, or ↑ pushes the commits that wait. The panel closes by itself when the
+  mouse goes away. Double-click the item to bring the window back.
+- **The app stays in the menu bar.** The red button hides the window instead of closing the app, the green
+  button fills the screen, and the window comes back with a double-click on the menu bar item.
 - **Commit and push from the card.** Write the message yourself or press ✨ to let AI write it. Buttons that
   have nothing to do are disabled.
 - **More in ⋯:** use the AI agent, fetch, pull with rebase, rebase on `origin/main`, sync, stash and stash pop,

@@ -940,6 +940,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mbAiShip => 'AI commit & push';
 
   @override
+  String get mbAiCommit => 'AI commit';
+
+  @override
+  String get mbAiCommitTooltip =>
+      'AI writes the message, commits and pushes this repository';
+
+  @override
   String get mbShipAllTooltip =>
       'AI writes the message, commits and pushes every repository with work waiting';
 

@@ -1448,6 +1448,18 @@ abstract class AppLocalizations {
   /// **'AI commit & push'**
   String get mbAiShip;
 
+  /// No description provided for @mbAiCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'AI commit'**
+  String get mbAiCommit;
+
+  /// No description provided for @mbAiCommitTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI writes the message, commits and pushes this repository'**
+  String get mbAiCommitTooltip;
+
   /// No description provided for @mbShipAllTooltip.
   ///
   /// In en, this message translates to:

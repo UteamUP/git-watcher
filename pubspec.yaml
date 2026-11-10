@@ -1,7 +1,7 @@
 name: git_watcher
 description: "GIT Watcher - watch, commit and push many git repositories from one window."
 publish_to: 'none'
-version: 1.0.7+8
+version: 1.0.14+15
 
 environment:
   sdk: ^3.13.0

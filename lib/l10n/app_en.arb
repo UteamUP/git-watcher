@@ -791,6 +791,8 @@
   "mbAllClean": "Everything is in order",
   "mbAllCleanBody": "Nothing to commit, nothing to push, no CI running.",
   "mbAiShip": "AI commit & push",
+  "mbAiCommit": "AI commit",
+  "mbAiCommitTooltip": "AI writes the message, commits and pushes this repository",
   "mbShipAllTooltip": "AI writes the message, commits and pushes every repository with work waiting",
   "mbPush": "Push {n}",
   "@mbPush": {

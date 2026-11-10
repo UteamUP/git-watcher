@@ -6,15 +6,15 @@ import 'snapshot.dart';
 
 /// What the menu bar shows: the repositories that have something waiting.
 ///
-/// Only the first few changed files of each repository travel with the snapshot, so the panel
-/// stays small no matter how big the work is.
+/// Only the work that is not committed or not pushed, and only the pipelines that are at work
+/// or broken. What is already fine needs no attention here.
 MenuBarSnapshot buildMenuBarSnapshot(
   WatcherController controller, {
   String? notice,
   bool noticeError = false,
 }) {
   final l = controller.l10n;
-  final repos = controller.sorted.where((repo) => repo.needsAttention).toList();
+  final repos = controller.sorted.where((repo) => repo.dirty || repo.ahead > 0).toList();
   return MenuBarSnapshot(
     dirty: controller.dirtyCount,
     ahead: controller.aheadCount,
@@ -27,10 +27,6 @@ MenuBarSnapshot buildMenuBarSnapshot(
           name: repo.name,
           iconPath: repo.iconPath,
           branch: repo.status?.branch ?? '',
-          files: [
-            for (final file in repo.files.take(2))
-              MenuBarFile(path: file.path, name: file.fileName, kind: file.kind.name),
-          ],
           fileCount: repo.files.length,
           added: repo.addedLines,
           deleted: repo.deletedLines,
@@ -38,9 +34,8 @@ MenuBarSnapshot buildMenuBarSnapshot(
           behind: repo.behind,
           ciState: repo.ci.state.name,
           ciProgress: repo.ci.progress,
-          ciText: repo.ci.state == CiState.none ? null : ciLabel(l, repo.ci),
+          ciText: repo.ci.active || repo.ci.state == CiState.failure ? ciLabel(l, repo.ci) : null,
           busy: repo.busy,
-          lastCommit: repo.status?.lastCommitSubject,
         ),
     ],
     notice: notice,
