@@ -110,7 +110,6 @@ class _GitWatcherAppState extends State<GitWatcherApp> {
     final args = arguments is Map ? arguments.cast<String, dynamic>() : const <String, dynamic>{};
     final method = args['method'] as String?;
     final path = args['path'] as String?;
-    debugPrint('[GITWatcher] action $method');
     final repo = path == null ? null : controller.byPath(path);
     switch (method) {
       case 'aiShipAll':

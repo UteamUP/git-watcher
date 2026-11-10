@@ -20,8 +20,7 @@ MenuBarSnapshot buildMenuBarSnapshot(
     ahead: controller.aheadCount,
     ciRunning: controller.ciRunning,
     ciFailed: controller.ciFailed,
-    repos: [
-      for (final repo in repos)
+    repos: [      for (final repo in repos)
         MenuBarRepo(
           path: repo.path,
           name: repo.name,
@@ -38,6 +37,7 @@ MenuBarSnapshot buildMenuBarSnapshot(
           busy: repo.busy,
         ),
     ],
+    busy: controller.helper.running,
     notice: notice,
     noticeError: noticeError,
   );

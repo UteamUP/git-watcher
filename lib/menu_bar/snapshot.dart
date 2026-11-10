@@ -89,6 +89,7 @@ class MenuBarSnapshot {
     required this.ciRunning,
     required this.ciFailed,
     required this.repos,
+    this.busy = false,
     this.notice,
     this.noticeError = false,
   });
@@ -108,6 +109,9 @@ class MenuBarSnapshot {
   /// Only the repositories that have something waiting.
   final List<MenuBarRepo> repos;
 
+  /// The AI helper is at work, so nothing else may be started.
+  final bool busy;
+
   /// A short line about what just happened, from the last action in the panel.
   final String? notice;
 
@@ -122,6 +126,7 @@ class MenuBarSnapshot {
           for (final repo in (json['repos'] as List? ?? const []))
             MenuBarRepo.fromJson((repo as Map).cast<String, dynamic>()),
         ],
+        busy: json['busy'] as bool? ?? false,
         notice: json['notice'] as String?,
         noticeError: json['noticeError'] as bool? ?? false,
       );
@@ -132,6 +137,7 @@ class MenuBarSnapshot {
         'ciRunning': ciRunning,
         'ciFailed': ciFailed,
         'repos': [for (final repo in repos) repo.toJson()],
+        'busy': busy,
         'notice': notice,
         'noticeError': noticeError,
       };

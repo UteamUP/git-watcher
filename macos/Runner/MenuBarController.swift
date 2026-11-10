@@ -102,7 +102,6 @@ final class MenuBarController: NSObject {
       switch call.method {
       case "action":
         // The panel has no git of its own: the main app does the work and answers.
-        NSLog("[GITWatcher] the panel asks for \(call.arguments ?? "?")")
         self.mainChannel.invokeMethod("action", arguments: call.arguments)
         result(nil)
       case "getSnapshot":
@@ -185,7 +184,6 @@ final class MenuBarController: NSObject {
     positionPanel(height: panel.frame.height)
     panel.orderFrontRegardless()
     panel.makeKey()
-    NSLog("[GITWatcher] the panel opened, key=\(panel.isKeyWindow) frame=\(panel.frame)")
     startPolling()
   }
 
@@ -237,7 +235,6 @@ final class MenuBarController: NSObject {
         // while the mouse is on it.
         if !self.panel.isKeyWindow {
           self.panel.makeKey()
-          NSLog("[GITWatcher] the panel is the key window")
         }
         self.closeTimer?.invalidate()
         self.closeTimer = nil

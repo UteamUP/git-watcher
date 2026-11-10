@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// The channel between the app and the native menu bar item.
@@ -90,7 +89,6 @@ class MenuBarPanelBridge {
 
   /// Asks the main app to do something. The panel has no git of its own.
   static Future<void> action(String method, {String? path}) async {
-    debugPrint('[GITWatcher] the panel asks for $method');
     await _channel.invokeMethod<void>('action', {'method': method, 'path': ?path});
   }
 

@@ -278,11 +278,11 @@ class _ShipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final s = snapshot;
-    final busy = s?.repos.any((repo) => repo.busy != null) ?? false;
+    final working = s?.busy ?? false;
     final work = s?.repos.where((repo) => repo.dirty || repo.ahead > 0).length ?? 0;
     return GlassButton(
-      onPressed: work == 0 || busy ? null : () => MenuBarPanelBridge.action('aiShipAll'),
-      busy: busy,
+      onPressed: work == 0 || working ? null : () => MenuBarPanelBridge.action('aiShipAll'),
+      busy: working,
       icon: Icons.auto_awesome_rounded,
       label: l.mbAiShip,
       tone: GlassTone.rose,
@@ -326,7 +326,7 @@ class _Body extends StatelessWidget {
           key: listKey,
           children: [
             for (var i = 0; i < s.repos.length; i++)
-              _RepoRow(repo: s.repos[i], ink: ink, last: i == s.repos.length - 1),
+              _RepoRow(repo: s.repos[i], ink: ink, last: i == s.repos.length - 1, busy: s.busy),
           ],
         ),
       ),
@@ -336,18 +336,20 @@ class _Body extends StatelessWidget {
 
 /// One repository: the work waiting, the buttons and the pipeline.
 class _RepoRow extends StatelessWidget {
-  const _RepoRow({required this.repo, required this.ink, required this.last});
+  const _RepoRow({required this.repo, required this.ink, required this.last, required this.busy});
 
   final MenuBarRepo repo;
   final _Ink ink;
   final bool last;
 
+  /// The AI helper is at work somewhere, so no new work may be started.
+  final bool busy;
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final busy = repo.busy;
-    final canShip = repo.dirty && busy == null;
-    final canPush = repo.ahead > 0 && busy == null;
+    final canShip = repo.dirty && !busy;
+    final canPush = repo.ahead > 0 && !busy;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -366,7 +368,7 @@ class _RepoRow extends StatelessWidget {
                   const SizedBox(width: 1),
                   Text('${repo.ahead}', style: Txt.strong.copyWith(fontSize: 11.5, color: Palette.blue)),
                 ]),
-              if (busy != null) ...[
+              if (repo.busy != null) ...[
                 const SizedBox(width: 8),
                 const SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: Palette.blue)),
               ],
@@ -378,6 +380,7 @@ class _RepoRow extends StatelessWidget {
                   Expanded(
                     child: GlassButton(
                       onPressed: () => MenuBarPanelBridge.action('aiShip', path: repo.path),
+                      busy: repo.busy != null,
                       icon: Icons.auto_awesome_rounded,
                       label: l.mbAiCommit,
                       tone: GlassTone.rose,
