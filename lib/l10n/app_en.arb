@@ -792,7 +792,7 @@
   "mbAllCleanBody": "Nothing to commit, nothing to push, no CI running.",
   "mbAiShip": "AI commit & push",
   "mbAiCommit": "AI commit",
-  "mbAiCommitTooltip": "AI writes the message, commits and pushes this repository",
+  "mbAiCommitTooltip": "AI writes the message and commits this repository. The push is yours.",
   "mbShipAllTooltip": "AI writes the message, commits and pushes every repository with work waiting",
   "mbPush": "Push {n}",
   "@mbPush": {
@@ -831,6 +831,22 @@
   "mbFooterHint": "Double-click the menu bar icon to open the window",
   "mbShipped": "{repo}: committed and pushed",
   "@mbShipped": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "mbCommitted": "{repo}: committed",
+  "@mbCommitted": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "mbCommitFailed": "{repo}: could not be committed",
+  "@mbCommitFailed": {
     "placeholders": {
       "repo": {
         "type": "String"

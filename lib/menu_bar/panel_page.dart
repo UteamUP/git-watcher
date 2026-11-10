@@ -379,7 +379,7 @@ class _RepoRow extends StatelessWidget {
                 if (canShip)
                   Expanded(
                     child: GlassButton(
-                      onPressed: () => MenuBarPanelBridge.action('aiShip', path: repo.path),
+                      onPressed: () => MenuBarPanelBridge.action('aiCommit', path: repo.path),
                       busy: repo.busy != null,
                       icon: Icons.auto_awesome_rounded,
                       label: l.mbAiCommit,

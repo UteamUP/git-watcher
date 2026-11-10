@@ -226,7 +226,7 @@
   "mbAllCleanBody": "Ekkert að commita, ekkert að pusha, engin CI í gangi.",
   "mbAiShip": "AI commit & push",
   "mbAiCommit": "AI commit",
-  "mbAiCommitTooltip": "AI skrifar skilaboð, commit-ar og pushar þetta repo",
+  "mbAiCommitTooltip": "AI skrifar skilaboðin og commitar þetta repo. Push er þitt.",
   "mbShipAllTooltip": "AI skrifar skilaboð, commit-ar og pushar öll repo sem hafa verk í bið",
   "mbPush": "Push {n}",
   "mbPushOnly": "Push",
@@ -236,6 +236,8 @@
   "mbMoreFiles": "{n} skrár til viðbótar",
   "mbFooterHint": "Tvísmelt á iconið í menubar til að opna gluggann",
   "mbShipped": "{repo}: committað og pushað",
+  "mbCommitted": "{repo}: committað",
+  "mbCommitFailed": "{repo}: ekki hægt að commita",
   "mbShipFailed": "{repo}: ekki hægt að afgreiða",
   "mbPushed": "{repo}: pushað"
 }

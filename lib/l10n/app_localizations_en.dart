@@ -944,7 +944,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mbAiCommitTooltip =>
-      'AI writes the message, commits and pushes this repository';
+      'AI writes the message and commits this repository. The push is yours.';
 
   @override
   String get mbShipAllTooltip =>
@@ -995,6 +995,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String mbShipped(String repo) {
     return '$repo: committed and pushed';
+  }
+
+  @override
+  String mbCommitted(String repo) {
+    return '$repo: committed';
+  }
+
+  @override
+  String mbCommitFailed(String repo) {
+    return '$repo: could not be committed';
   }
 
   @override

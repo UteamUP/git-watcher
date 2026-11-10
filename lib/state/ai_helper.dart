@@ -70,6 +70,53 @@ class AiHelper extends ChangeNotifier {
     return ok;
   }
 
+  /// Writes the message and commits, but leaves the push to the user.
+  ///
+  /// The menu bar panel has its own button for this: committing is safe, pushing is the user's
+  /// call. It answers whether the repository ended up with the change committed.
+  Future<bool> commitOnly(RepoState repo) async {
+    if (running) return false;
+    running = true;
+    visible = true;
+    steps.clear();
+    summary = watcher.l10n.topHelperWorkingOn(1);
+    notifyListeners();
+    var ok = false;
+    try {
+      await watcher.refreshRepo(repo.path);
+      final status = repo.status;
+      if (status == null || status.files.isEmpty) {
+        return false;
+      }
+      if (status.operation != RepoOperation.none) {
+        throw GitException(watcher.l10n.cardOperationInProgress(operationLabel(status.operation)));
+      }
+      var message = repo.message.text.trim();
+      if (message.isEmpty) {
+        await _step(repo, Icons.edit_note_rounded, watcher.l10n.topHelperWritingMessage, () async {
+          message = await watcher.generateMessage(repo, subjectOnly: false);
+        });
+      }
+      await _step(
+        repo,
+        Icons.check_rounded,
+        watcher.l10n.topHelperCommitFiles(status.files.length),
+        () => watcher.service.commit(repo.path, status.files, message, operation: status.operation),
+      );
+      repo.message.clear();
+      ok = true;
+    } on Object catch (error) {
+      _add(HelperStep(repo.name, Icons.error_outline_rounded, firstLine(watcher.l10n, error), HelperStepState.failed));
+    } finally {
+      repo.busy = null;
+      running = false;
+      summary = ok ? watcher.l10n.topHelperDone(1, 1) : '';
+      await watcher.refreshRepo(repo.path);
+      notifyListeners();
+    }
+    return ok;
+  }
+
   Future<bool> _ship(RepoState repo) async {
     final service = watcher.service;
     final l = watcher.l10n;

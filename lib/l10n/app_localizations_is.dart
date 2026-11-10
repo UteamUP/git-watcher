@@ -891,7 +891,7 @@ class AppLocalizationsIs extends AppLocalizations {
 
   @override
   String get mbAiCommitTooltip =>
-      'AI skrifar skilaboð, commit-ar og pushar þetta repo';
+      'AI skrifar skilaboðin og commitar þetta repo. Push er þitt.';
 
   @override
   String get mbShipAllTooltip =>
@@ -929,6 +929,16 @@ class AppLocalizationsIs extends AppLocalizations {
   @override
   String mbShipped(String repo) {
     return '$repo: committað og pushað';
+  }
+
+  @override
+  String mbCommitted(String repo) {
+    return '$repo: committað';
+  }
+
+  @override
+  String mbCommitFailed(String repo) {
+    return '$repo: ekki hægt að commita';
   }
 
   @override

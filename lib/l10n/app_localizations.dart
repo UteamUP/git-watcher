@@ -1457,7 +1457,7 @@ abstract class AppLocalizations {
   /// No description provided for @mbAiCommitTooltip.
   ///
   /// In en, this message translates to:
-  /// **'AI writes the message, commits and pushes this repository'**
+  /// **'AI writes the message and commits this repository. The push is yours.'**
   String get mbAiCommitTooltip;
 
   /// No description provided for @mbShipAllTooltip.
@@ -1513,6 +1513,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{repo}: committed and pushed'**
   String mbShipped(String repo);
+
+  /// No description provided for @mbCommitted.
+  ///
+  /// In en, this message translates to:
+  /// **'{repo}: committed'**
+  String mbCommitted(String repo);
+
+  /// No description provided for @mbCommitFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{repo}: could not be committed'**
+  String mbCommitFailed(String repo);
 
   /// No description provided for @mbShipFailed.
   ///

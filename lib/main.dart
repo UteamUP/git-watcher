@@ -121,6 +121,11 @@ class _GitWatcherAppState extends State<GitWatcherApp> {
         if (repo == null) return;
         final ok = await controller.helper.ship(repo);
         _setNotice(ok ? controller.l10n.mbShipped(repo.name) : controller.l10n.mbShipFailed(repo.name), error: !ok);
+      case 'aiCommit':
+        // The message and the commit, but no push: that stays the user's call.
+        if (repo == null) return;
+        final ok = await controller.helper.commitOnly(repo);
+        _setNotice(ok ? controller.l10n.mbCommitted(repo.name) : controller.l10n.mbCommitFailed(repo.name), error: !ok);
       case 'push':
         if (repo == null) return;
         try {
