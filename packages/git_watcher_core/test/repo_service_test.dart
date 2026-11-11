@@ -73,6 +73,71 @@ void main() {
     expect(() => service.commit(repo, const [], 'feat: x'), throwsA(isA<GitException>()));
   });
 
+  test('commit includes staged deletions together with modified and untracked files', () async {
+    await git(['rm', 'a.txt']);
+    await File('$repo/b.txt').writeAsString('changed\n');
+    await File('$repo/new [draft] *.txt').writeAsString('new\n');
+
+    await service.commit(repo, (await service.status(repo)).files, 'feat: commit all changes');
+
+    expect((await service.status(repo)).isClean, isTrue);
+    final log = await service.log(repo, limit: 1);
+    final files = await service.commitFiles(repo, log.single.hash);
+    expect({for (final file in files) file.path: file.kind}, {
+      'a.txt': ChangeKind.deleted,
+      'b.txt': ChangeKind.modified,
+      'new [draft] *.txt': ChangeKind.added,
+    });
+  });
+
+  for (final staged in [false, true]) {
+    test('commit handles a ${staged ? 'staged' : 'working-tree'} deletion without committing other staged files', () async {
+      if (staged) {
+        await git(['rm', 'a.txt']);
+      } else {
+        await File('$repo/a.txt').delete();
+      }
+      await File('$repo/b.txt').writeAsString('unrelated staged work\n');
+      await git(['add', 'b.txt']);
+
+      final chosen = (await service.status(repo)).files.where((file) => file.path == 'a.txt').toList();
+      await service.commit(repo, chosen, 'fix: remove selected file');
+
+      final after = await service.status(repo);
+      expect(after.files.single.path, 'b.txt');
+      expect(after.files.single.staged, isTrue);
+      final log = await service.log(repo, limit: 1);
+      final files = await service.commitFiles(repo, log.single.hash);
+      expect(files.single.path, 'a.txt');
+      expect(files.single.kind, ChangeKind.deleted);
+    });
+  }
+
+  for (final editAfterRename in [false, true]) {
+    test('commit handles a staged rename${editAfterRename ? ' with additional working-tree edits' : ''}', () async {
+      const renamed = 'renamed [draft].txt';
+      await git(['mv', 'a.txt', renamed]);
+      if (editAfterRename) await File('$repo/$renamed').writeAsString('one\n\n');
+      await File('$repo/b.txt').writeAsString('unrelated staged work\n');
+      await git(['add', 'b.txt']);
+
+      final chosen = (await service.status(repo)).files.where((file) => file.path == renamed).toList();
+      expect(chosen.single.originalPath, 'a.txt');
+      await service.commit(repo, chosen, 'refactor: rename selected file');
+
+      final after = await service.status(repo);
+      expect(after.files.single.path, 'b.txt');
+      expect(after.files.single.staged, isTrue);
+      final log = await service.log(repo, limit: 1);
+      final files = await service.commitFiles(repo, log.single.hash);
+      expect(files.single.path, renamed);
+      expect(files.single.originalPath, 'a.txt');
+      final content = await Process.run('git', ['show', 'HEAD:$renamed'], workingDirectory: repo);
+      expect(content.exitCode, 0);
+      expect(content.stdout, editAfterRename ? 'one\n\n' : 'one\n');
+    });
+  }
+
   test('working diff of a tracked file and an untracked file', () async {
     await File('$repo/a.txt').writeAsString('one\ntwo\n');
     await File('$repo/fresh.txt').writeAsString('hello\n');

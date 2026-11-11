@@ -226,8 +226,15 @@ class GitWatcherService {
   Future<String> commit(String repo, List<FileChange> files, String message, {RepoOperation? operation}) async {
     if (files.isEmpty) throw const GitException('No files selected to commit');
     if (message.trim().isEmpty) throw const GitException('The commit message is empty');
-    final spec = {for (final f in files) ...f.pathspecs}.join('\x00');
-    await git.check(repo, ['add', '-A', '--pathspec-from-file=-', '--pathspec-file-nul'], stdin: spec);
+    final paths = {for (final f in files) ...f.pathspecs};
+    // Staged deletions and rename sources no longer exist in the index or worktree.
+    final stageable = (await git.check(repo, ['ls-files', '--cached', '--others', '--exclude-standard', '-z']))
+        .stdout.split('\x00').toSet();
+    final stageSpec = paths.where(stageable.contains).join('\x00');
+    if (stageSpec.isNotEmpty) {
+      await git.check(repo, ['add', '-A', '--pathspec-from-file=-', '--pathspec-file-nul'], stdin: stageSpec);
+    }
+    final spec = paths.join('\x00');
     // A merge or rebase in progress refuses a partial commit, so commit the whole index then.
     final partial = (operation ?? await _operation(repo)) == RepoOperation.none;
     await git.check(
