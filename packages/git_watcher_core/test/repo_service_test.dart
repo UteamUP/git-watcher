@@ -30,6 +30,102 @@ void main() {
 
   tearDown(() => root.delete(recursive: true));
 
+  Future<String> fingerprint() async =>
+      service.changeFingerprint(repo, await service.status(repo));
+
+  test('change fingerprints stay stable across polls, timestamp changes and ignored files', () async {
+    final before = await fingerprint();
+    await File('$repo/a.txt').setLastModified(DateTime(2025));
+    await File('$repo/.git/info/exclude')
+        .writeAsString('ignored.bin\n', mode: FileMode.append);
+    await File('$repo/ignored.bin').writeAsBytes([0, 1, 2]);
+    expect(await fingerprint(), before);
+    expect(await fingerprint(), before);
+  });
+
+  test(
+    'change fingerprints detect same-size edits to an already dirty file',
+    () async {
+      final file = File('$repo/a.txt');
+      await file.writeAsString('alpha\n');
+      final timestamp = await file.lastModified();
+      final before = await fingerprint();
+      await file.writeAsString('bravo\n');
+      await file.setLastModified(timestamp);
+      expect(await fingerprint(), isNot(before));
+    },
+  );
+
+  test('change fingerprints include untracked binary contents', () async {
+    final file = File('$repo/new file.bin');
+    await file.writeAsBytes([0, 1, 2]);
+    final before = await fingerprint();
+    await file.writeAsBytes([0, 2, 2]);
+    expect(await fingerprint(), isNot(before));
+  });
+
+  test(
+    'change fingerprints support unusual paths',
+    () async {
+      final file = File('$repo/new [draft] *\nfile.bin');
+      await file.writeAsBytes([0, 1, 2]);
+      final before = await fingerprint();
+      await file.writeAsBytes([0, 2, 2]);
+      expect(await fingerprint(), isNot(before));
+    },
+    skip: Platform.isWindows,
+  );
+
+  test('change fingerprints detect staged content changes with an identical working tree', () async {
+    final file = File('$repo/a.txt');
+    await file.writeAsString('staged one\n');
+    await git(['add', 'a.txt']);
+    await file.writeAsString('working tree\n');
+    final before = await fingerprint();
+    await file.writeAsString('staged two\n');
+    await git(['add', 'a.txt']);
+    await file.writeAsString('working tree\n');
+    expect(await fingerprint(), isNot(before));
+  });
+
+  test('change fingerprints detect pushes without changing HEAD and ignore repeated pushes', () async {
+    final remote = '${root.path}/origin.git';
+    await git(['init', '--bare', '-q', remote], cwd: root.path);
+    await git(['remote', 'add', 'origin', remote]);
+    await git(['push', '-u', 'origin', 'main']);
+    await git(['commit', '--allow-empty', '-q', '-m', 'chore: pending push']);
+    final head = (await service.status(repo)).headHash;
+    final before = await fingerprint();
+    await git(['push']);
+    final pushed = await fingerprint();
+    expect((await service.status(repo)).headHash, head);
+    expect(pushed, isNot(before));
+    await git(['push']);
+    expect(await fingerprint(), pushed);
+  });
+
+  test('change fingerprints support repositories without commits', () async {
+    repo = '${root.path}/empty';
+    await Directory(repo).create();
+    await git(['init', '-q', '-b', 'main']);
+    final before = await fingerprint();
+    await File('$repo/first.txt').writeAsString('first\n');
+    expect(await fingerprint(), isNot(before));
+  });
+
+  test(
+    'change fingerprints hash symlink targets without following them',
+    () async {
+      final link = Link('$repo/link');
+      await link.create('missing-one');
+      final before = await fingerprint();
+      await link.delete();
+      await link.create('missing-two');
+      expect(await fingerprint(), isNot(before));
+    },
+    skip: Platform.isWindows,
+  );
+
   test('status counts modified, untracked and deleted files with line stats', () async {
     await File('$repo/a.txt').writeAsString('one\nmore\n');
     await File('$repo/new file.txt').writeAsString('x\ny\nz\n');

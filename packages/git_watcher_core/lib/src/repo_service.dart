@@ -130,6 +130,74 @@ class GitWatcherService {
     );
   }
 
+  /// Hashes only Git-visible state, including file contents rather than timestamps.
+  Future<String> changeFingerprint(String repo, RepoStatus status) async {
+    final files = [...status.files]..sort((a, b) => a.path.compareTo(b.path));
+    final paths = <String>[];
+    final links = <String, String>{};
+    final submodules = <String, String>{};
+    for (final file in files) {
+      final path = '$repo/${file.path}';
+      switch (await FileSystemEntity.type(path, followLinks: false)) {
+        case FileSystemEntityType.file:
+          paths.add(file.path);
+        case FileSystemEntityType.link:
+          links[file.path] = await Link(path).target();
+        case FileSystemEntityType.directory:
+          if (await isRepository(path)) {
+            submodules[file.path] = await changeFingerprint(
+              path,
+              await this.status(path),
+            );
+          }
+        default:
+          break;
+      }
+    }
+    final hashes = <String>[];
+    // Keep each invocation below Windows' command-line length limit.
+    const batchSize = 50;
+    for (var start = 0; start < paths.length; start += batchSize) {
+      final batch = paths.skip(start).take(batchSize);
+      hashes.add(
+        (await git.check(repo, [
+          'hash-object',
+          '--no-filters',
+          '--',
+          ...batch,
+        ])).stdout,
+      );
+    }
+    const diffArgs = [
+      'diff',
+      '--raw',
+      '--no-abbrev',
+      '--no-ext-diff',
+      '--no-textconv',
+      '-z',
+    ];
+    final diffs = await Future.wait([
+      git.check(repo, [...diffArgs, '--']),
+      git.check(repo, [...diffArgs, '--cached', '--']),
+    ]);
+    final state = jsonEncode({
+      'branch': status.branch,
+      'head': status.headHash,
+      'upstream': status.upstream,
+      'ahead': status.ahead,
+      'behind': status.behind,
+      'files': [for (final file in files) file.toJson()],
+      'diffs': [for (final diff in diffs) diff.stdout],
+      'hashes': hashes,
+      'links': links,
+      'submodules': submodules,
+    });
+    return (await git.check(repo, [
+      'hash-object',
+      '--stdin',
+    ], stdin: state)).stdout.trim();
+  }
+
   Future<String?> _remoteUrl(String repo) async {
     final origin = await git.run(repo, ['remote', 'get-url', 'origin']);
     if (origin.ok && origin.stdout.trim().isNotEmpty) return origin.stdout.trim();

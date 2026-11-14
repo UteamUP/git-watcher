@@ -4,7 +4,7 @@ import 'dart:io';
 import 'ai.dart';
 import 'models.dart';
 
-/// One skill to run in sequence when new commits arrive in a repository.
+/// One skill to run in sequence when a repository changes.
 class SkillStepConfig {
   SkillStepConfig({
     required this.skill,
@@ -38,7 +38,7 @@ class SkillStepConfig {
       };
 }
 
-/// Per-repository periodic automation: independent auto-commit / auto-push, plus commit-triggered skills.
+/// Per-repository periodic automation: independent auto-commit / auto-push, plus change-triggered skills.
 class RepoAutomationConfig {
   RepoAutomationConfig({
     this.autoCommit = false,
@@ -49,6 +49,7 @@ class RepoAutomationConfig {
     int skillIntervalMinutes = 15,
     List<SkillStepConfig>? skills,
     this.lastSkillCommit,
+    this.lastSkillFingerprint,
   })  : syncIntervalMinutes = syncIntervalMinutes.clamp(1, 1440),
         pushIntervalMinutes = (pushIntervalMinutes ?? syncIntervalMinutes).clamp(1, 1440),
         skillIntervalMinutes = skillIntervalMinutes.clamp(1, 1440),
@@ -70,6 +71,16 @@ class RepoAutomationConfig {
   /// Last HEAD commit hash seen by the skill watcher, updated after skills finish to prevent re-trigger loops.
   String? lastSkillCommit;
 
+  /// Commit, push and file-content state after the last skill attempt.
+  String? lastSkillFingerprint;
+
+  bool hasSkillChanges(RepoStatus status, String fingerprint) {
+    final previous = lastSkillFingerprint;
+    if (previous != null && previous.isNotEmpty) return previous != fingerprint;
+    final commit = lastSkillCommit;
+    return commit != null && commit.isNotEmpty && commit != status.headHash;
+  }
+
   bool get hasAutoSync => autoCommit || autoPush;
   bool get hasActiveSkills => skills.any((s) => s.enabled && s.skill.trim().isNotEmpty);
   bool get hasSkillWatch => watchCommitsForSkills && hasActiveSkills;
@@ -90,6 +101,7 @@ class RepoAutomationConfig {
           if (item is Map) SkillStepConfig.fromJson(item.cast<String, dynamic>()),
       ],
       lastSkillCommit: json['lastSkillCommit'] as String?,
+      lastSkillFingerprint: json['lastSkillFingerprint'] as String?,
     );
   }
 
@@ -102,6 +114,7 @@ class RepoAutomationConfig {
         'skillIntervalMinutes': skillIntervalMinutes,
         'skills': [for (final s in skills) s.toJson()],
         if (lastSkillCommit != null && lastSkillCommit!.isNotEmpty) 'lastSkillCommit': lastSkillCommit,
+        if (lastSkillFingerprint != null && lastSkillFingerprint!.isNotEmpty) 'lastSkillFingerprint': lastSkillFingerprint,
       };
 }
 

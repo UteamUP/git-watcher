@@ -120,7 +120,7 @@ class WatcherController extends ChangeNotifier {
   Future<void> start() async {
     unawaited(checkAi());
     await _load();
-    _seedSkillBaselines();
+    await _seedSkillBaselines();
     _timers.addAll([
       Timer.periodic(const Duration(seconds: 1), (_) {
         if (!_disposed) clock.value = DateTime.now();
@@ -268,6 +268,7 @@ class WatcherController extends ChangeNotifier {
     if (resetSkillTimer) _lastSkillCheckAt[repo.path] = now;
     clock.value = now;
     _notify();
+    unawaited(_seedSkillBaseline(repo, auto));
   }
 
   /// Remaining time until the next scheduled auto-commit check for [repo], or `null` if disabled.
@@ -290,7 +291,7 @@ class WatcherController extends ChangeNotifier {
     return diff.isNegative ? Duration.zero : diff;
   }
 
-  /// Remaining time until the next scheduled commit-check for skills on [repo], or `null` if disabled.
+  /// Remaining time until the next scheduled change-check for skills on [repo], or `null` if disabled.
   Duration? nextSkillRunIn(RepoState repo, {DateTime? now}) {
     final auto = config.maybeAutomation(repo.path);
     if (auto == null || !auto.hasSkillWatch) return null;
@@ -300,17 +301,45 @@ class WatcherController extends ChangeNotifier {
     return diff.isNegative ? Duration.zero : diff;
   }
 
-  void _seedSkillBaselines() {
-    var changed = false;
+  Future<void> _seedSkillBaselines() async {
     for (final repo in repos) {
       final auto = config.maybeAutomation(repo.path);
-      final head = repo.status?.headHash;
-      if (auto != null && auto.watchCommitsForSkills && (auto.lastSkillCommit == null || auto.lastSkillCommit!.isEmpty) && head != null) {
-        auto.lastSkillCommit = head;
-        changed = true;
-      }
+      if (auto != null) await _seedSkillBaseline(repo, auto);
     }
-    if (changed) config.save();
+  }
+
+  Future<void> _seedSkillBaseline(
+    RepoState repo,
+    RepoAutomationConfig auto,
+  ) async {
+    if (!auto.hasSkillWatch || (auto.lastSkillFingerprint?.isNotEmpty ?? false)) {
+      return;
+    }
+    try {
+      final status = await service.status(repo.path);
+      final fingerprint = await service.changeFingerprint(repo.path, status);
+      if (!auto.hasSkillWatch ||
+          config.maybeAutomation(repo.path) != auto ||
+          auto.hasSkillChanges(status, fingerprint)) {
+        return;
+      }
+      _saveSkillState(auto, status, fingerprint);
+    } on Object catch (error) {
+      repo.error = firstLine(l10n, error);
+      _notify();
+    }
+  }
+
+  void _saveSkillState(
+    RepoAutomationConfig auto,
+    RepoStatus status,
+    String fingerprint,
+  ) {
+    auto
+      ..lastSkillCommit = status.headHash
+      ..lastSkillFingerprint = fingerprint;
+    config.save();
+    _notify();
   }
 
   /// Runs auto-commit and/or auto-push for [repo] according to its settings (or explicit flags).
@@ -360,20 +389,61 @@ class WatcherController extends ChangeNotifier {
     }
   }
 
-  /// Runs the configured skills for [repo] immediately and updates its commit baseline.
+  /// Checks for changes immediately; unchanged repositories never start a skill.
   Future<bool> runRepoSkillsNow(RepoState repo) async {
     final auto = config.maybeAutomation(repo.path);
-    if (auto == null || !auto.hasActiveSkills || helper.running) return false;
-    final ok = await helper.runSkills(repo, auto.skills);
-    final head = repo.status?.headHash;
-    if (head != null && head.isNotEmpty) {
-      auto.lastSkillCommit = head;
-      config.save();
+    if (auto == null ||
+        !auto.hasActiveSkills ||
+        helper.running ||
+        repo.busy != null ||
+        !_autoBusy.add(repo.path)) {
+      return false;
     }
-    final now = DateTime.now();
-    _lastSkillCheckAt[repo.path] = now;
-    clock.value = now;
-    _notify();
+    try {
+      return await _runSkillsIfChanged(repo, auto);
+    } on Object catch (error) {
+      repo.error = firstLine(l10n, error);
+      return false;
+    } finally {
+      _autoBusy.remove(repo.path);
+      final now = DateTime.now();
+      _lastSkillCheckAt[repo.path] = now;
+      clock.value = now;
+      _notify();
+    }
+  }
+
+  Future<bool> _runSkillsIfChanged(
+    RepoState repo,
+    RepoAutomationConfig auto,
+  ) async {
+    final status = await service.status(repo.path);
+    repo.status = status;
+    if (status.operation != RepoOperation.none) return false;
+    final fingerprint = await service.changeFingerprint(repo.path, status);
+    if (!auto.hasSkillChanges(status, fingerprint)) {
+      if (auto.lastSkillFingerprint == null ||
+          auto.lastSkillFingerprint!.isEmpty) {
+        _saveSkillState(auto, status, fingerprint);
+      }
+      return false;
+    }
+    if (helper.running ||
+        repo.busy != null ||
+        _disposed ||
+        !auto.hasActiveSkills) {
+      return false;
+    }
+    // Persist the attempt too, so a failed release is not retried on every timer tick.
+    _saveSkillState(auto, status, fingerprint);
+    final ok = await helper.runSkills(repo, auto.skills);
+    final after = await service.status(repo.path);
+    repo.status = after;
+    _saveSkillState(
+      auto,
+      after,
+      await service.changeFingerprint(repo.path, after),
+    );
     return ok;
   }
 
@@ -419,7 +489,10 @@ class WatcherController extends ChangeNotifier {
     }
   }
 
-  Future<void> _checkAndRunSkills(RepoState repo, RepoAutomationConfig auto) async {
+  Future<void> _checkAndRunSkills(
+    RepoState repo,
+    RepoAutomationConfig auto,
+  ) async {
     if (!_autoBusy.add(repo.path)) return;
     try {
       if (repo.remoteUrl != null) {
@@ -430,7 +503,9 @@ class WatcherController extends ChangeNotifier {
         }
       }
       await refreshRepo(repo.path);
-      if (!repo.dirty && repo.behind > 0 && repo.operation == RepoOperation.none) {
+      if (!repo.dirty &&
+          repo.behind > 0 &&
+          repo.operation == RepoOperation.none) {
         try {
           await pullRebase(repo);
         } on Object catch (error) {
@@ -439,20 +514,9 @@ class WatcherController extends ChangeNotifier {
           return;
         }
       }
-      final head = repo.status?.headHash;
-      if (head == null || head.isEmpty) return;
-      if (auto.lastSkillCommit == null || auto.lastSkillCommit!.isEmpty) {
-        auto.lastSkillCommit = head;
-        config.save();
-        _notify();
-        return;
-      }
-      if (head == auto.lastSkillCommit) return;
-
-      await helper.runSkills(repo, auto.skills);
-      final afterHead = repo.status?.headHash ?? head;
-      auto.lastSkillCommit = afterHead;
-      config.save();
+      await _runSkillsIfChanged(repo, auto);
+    } on Object catch (error) {
+      repo.error = firstLine(l10n, error);
       _notify();
     } finally {
       _autoBusy.remove(repo.path);
