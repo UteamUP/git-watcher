@@ -29,7 +29,7 @@ class RepoController extends ChangeNotifier {
   String? expanded;
   final commitFiles = <String, List<FileChange>>{};
 
-  final message = TextEditingController();
+  bool pushingAfterCommit = false;
   late String _signature;
   late String _head;
   var _disposed = false;
@@ -109,14 +109,18 @@ class RepoController extends ChangeNotifier {
   }
 
   Future<String> commit({bool push = false}) async {
-    final result = await watcher.commit(repo, files: included, message: message.text);
-    message.clear();
-    if (!push) return result;
-    await watcher.push(repo);
-    return watcher.l10n.repoCommittedAndPushed(result);
+    pushingAfterCommit = push;
+    _notify();
+    try {
+      final result = await watcher.commit(repo, files: included);
+      if (!push) return result;
+      await watcher.push(repo);
+      return watcher.l10n.repoCommittedAndPushed(result);
+    } finally {
+      pushingAfterCommit = false;
+      _notify();
+    }
   }
-
-  Future<void> writeMessage() => watcher.writeMessage(repo, subjectOnly: false, into: message, files: included);
 
   /// Reacts to the watcher only when this repo actually changed (files, line counts or HEAD).
   void _onWatcher() {
@@ -159,7 +163,6 @@ class RepoController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     watcher.removeListener(_onWatcher);
-    message.dispose();
     super.dispose();
   }
 }

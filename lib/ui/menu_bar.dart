@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 
 /// The channel between the app and the native menu bar item.
@@ -10,6 +12,7 @@ class MenuBarBridge {
   static Future<void> Function(MethodCall call)? handler;
 
   static void listen() {
+    if (!Platform.isMacOS) return;
     _channel.setMethodCallHandler((call) async {
       final onCall = handler;
       if (onCall != null) await onCall(call);
@@ -23,20 +26,24 @@ class MenuBarBridge {
     required int ciRunning,
     required int ciFailed,
   }) =>
-      _channel.invokeMethod<void>('updateSummary', {
-        'dirty': dirty,
-        'ahead': ahead,
-        'ciRunning': ciRunning,
-        'ciFailed': ciFailed,
-      });
+      Platform.isMacOS
+          ? _channel.invokeMethod<void>('updateSummary', {
+              'dirty': dirty,
+              'ahead': ahead,
+              'ciRunning': ciRunning,
+              'ciFailed': ciFailed,
+            })
+          : Future.value();
 
   /// The whole picture, for the panel in the menu bar.
   static Future<void> sendSnapshot(Map<String, dynamic> snapshot) =>
-      _channel.invokeMethod<void>('snapshot', snapshot);
+      Platform.isMacOS ? _channel.invokeMethod<void>('snapshot', snapshot) : Future.value();
 
-  static Future<void> showWindow() => _channel.invokeMethod<void>('showWindow');
+  static Future<void> showWindow() =>
+      Platform.isMacOS ? _channel.invokeMethod<void>('showWindow') : Future.value();
 
-  static Future<void> quit() => _channel.invokeMethod<void>('quit');
+  static Future<void> quit() =>
+      Platform.isMacOS ? _channel.invokeMethod<void>('quit') : Future.value();
 }
 
 /// The channel between the panel and the native menu bar item.

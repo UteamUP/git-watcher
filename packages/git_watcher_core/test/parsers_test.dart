@@ -149,8 +149,63 @@ void main() {
     expect(CiService.ownRuns(runs).map((r) => r['databaseId']), [2, 1]);
   });
 
-  test('repoDisplayName drops the UteamUP_ prefix only', () {
+  test('repoDisplayName and repoFolderName handle both macOS and Windows paths', () {
     expect(repoDisplayName('/x/UteamUP_Backend'), 'Backend');
     expect(repoDisplayName('/x/ActiveProjects/'), 'ActiveProjects');
+    expect(repoFolderName(r'C:\UteamUP_Development\ActiveProjects\UteamUP_Frontend'), 'UteamUP_Frontend');
+    expect(repoDisplayName(r'C:\UteamUP_Development\ActiveProjects\UteamUP_Frontend\'), 'Frontend');
+    expect(repoDisplayName(r'C:\UteamUP_Development\ActiveProjects'), 'ActiveProjects');
+  });
+
+  test('formatDiskPath normalizes separators for Windows and macOS', () {
+    expect(formatDiskPath('C:/UteamUP_Development/ActiveProjects/UteamUP_Frontend/', windows: true),
+        r'C:\UteamUP_Development\ActiveProjects\UteamUP_Frontend');
+    expect(formatDiskPath(r'C:\', windows: true), r'C:\');
+    expect(formatDiskPath(r'/Users/gisli\ActiveProjects/UteamUP_Frontend/', windows: false),
+        '/Users/gisli/ActiveProjects/UteamUP_Frontend');
+    expect(formatDiskPath('/', windows: false), '/');
+  });
+
+  test('AI providers expose MiniMax, Kimi, DeepSeek and per-provider model presets', () {
+    expect(AiProvider.minimax.defaultBaseUrl, 'https://api.minimax.io/v1');
+    expect(AiProvider.minimax.defaultModel, 'MiniMax-M3');
+    expect(AiProvider.minimax.suggestedModels, contains('MiniMax-M3'));
+    expect(AiProvider.kimi.defaultBaseUrl, 'https://api.moonshot.ai/v1');
+    expect(AiProvider.kimi.suggestedModels, contains('kimi-k3.1-pro'));
+    expect(AiProvider.deepseek.suggestedModels, containsAll(['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat']));
+    for (final provider in AiProvider.values.where((p) => p.needsKey && p != AiProvider.custom)) {
+      expect(provider.defaultBaseUrl, isNotEmpty);
+      expect(provider.defaultModel, isNotEmpty);
+      expect(provider.suggestedModels, isNotEmpty);
+    }
+  });
+
+  test('cleanCommitMessage strips reasoning tags and code fences, and normalizeBaseUrl handles suffixes', () {
+    expect(
+      AiService.cleanCommitMessage('<think>\nanalyzing diff...\n</think>\n```text\nfix(ai): trim dpapi key\n```'),
+      'fix(ai): trim dpapi key',
+    );
+    expect(
+      AiService.cleanCommitMessage('<think>reasoning</think>\nfeat: subject\n\nbody line', subjectOnly: true),
+      'feat: subject',
+    );
+    expect(
+      AiService.normalizeBaseUrl(const AiSettings(provider: AiProvider.deepseek, model: '', baseUrl: 'https://api.deepseek.com/')),
+      'https://api.deepseek.com',
+    );
+    expect(
+      AiService.normalizeBaseUrl(
+          const AiSettings(provider: AiProvider.minimax, model: '', baseUrl: 'https://api.minimaxi.com')),
+      'https://api.minimaxi.com/v1',
+    );
+    expect(
+      AiService.normalizeBaseUrl(const AiSettings(
+          provider: AiProvider.kimi, model: '', baseUrl: 'https://api.moonshot.ai/v1/chat/completions')),
+      'https://api.moonshot.ai/v1',
+    );
+    expect(
+      AiService.normalizeBaseUrl(const AiSettings(provider: AiProvider.anthropic, model: '', baseUrl: 'https://api.anthropic.com/v1/')),
+      'https://api.anthropic.com',
+    );
   });
 }

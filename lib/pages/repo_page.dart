@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -109,13 +110,20 @@ class _Header extends StatelessWidget {
         child: SizedBox(
           height: 52,
           child: Padding(
-            padding: const EdgeInsets.only(left: 84, right: 16),
+            padding: EdgeInsets.only(left: Platform.isMacOS ? 84 : 20, right: 16),
             child: Row(children: [
               GlassButton(onPressed: () => Navigator.maybePop(context), icon: Icons.chevron_left_rounded, tooltip: context.l10n.repoBack),
               const SizedBox(width: 12),
               RepoIcon(name: repo.name, iconPath: repo.iconPath, size: 34),
               const SizedBox(width: 10),
-              Flexible(child: Text(repo.name, style: Txt.title.copyWith(fontSize: 16.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Flexible(
+                child: Text(
+                  repo.name,
+                  style: Txt.title.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const SizedBox(width: 12),
               GlassChip(
                 icon: Icons.call_split_rounded,
@@ -175,6 +183,8 @@ class _Header extends StatelessWidget {
                 label: repo.ahead > 0 ? 'Push ${repo.ahead}' : 'Push',
                 tone: GlassTone.blue,
               ),
+              const SizedBox(width: 8),
+              CopyPathButton(repo: repo, size: 34),
               const SizedBox(width: 8),
               RepoMenu(controller: controller, repo: repo, size: 34),
             ]),
@@ -327,7 +337,7 @@ class _Changes extends StatelessWidget {
         _popupItem('code', Icons.code_rounded, l.openInVsCode),
       ],
     );
-    final full = '${repo.path}/${file.path}';
+    final full = formatDiskPath('${repo.path}/${file.path}');
     switch (choice) {
       case 'finder':
         await revealInFinder(full);
@@ -367,49 +377,43 @@ class _CommitBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final repo = page.repo;
     final idle = repo.busy == null;
     final canCommit = idle && page.included.isNotEmpty;
+    void startCommit({required bool push}) {
+      toast(context, l.cardAiCommitting(providerLabel(l, page.watcher.aiProvider), providerSpeed(l, page.watcher.aiProvider)));
+      runWithFeedback(context, () => page.commit(push: push));
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x141F2547)))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        GlassField(controller: page.message, hint: context.l10n.repoCommitMessageHint, minLines: 3, maxLines: 6, enabled: idle),
-        const SizedBox(height: 8),
-        Row(children: [
-          GlassButton(
-            onPressed: canCommit && !repo.writing ? () => runWithFeedback(context, page.writeMessage) : null,
-            busy: repo.writing,
+      child: Row(children: [
+        Expanded(
+          child: GlassButton(
+            onPressed: canCommit ? () => startCommit(push: false) : null,
+            busy: repo.committing && !page.pushingAfterCommit,
             icon: Icons.auto_awesome_rounded,
-            label: context.l10n.repoWriteWithAi,
-            tone: GlassTone.rose,
-            height: 32,
+            label: 'Commit ${page.included.length}',
+            tone: GlassTone.green,
+            height: 38,
+            expand: true,
+            tooltip: l.cardCommitTooltip,
           ),
-        ]),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: GlassButton(
-              onPressed: canCommit ? () => runWithFeedback(context, page.commit) : null,
-              icon: Icons.check_rounded,
-              label: 'Commit ${page.included.length}',
-              tone: GlassTone.green,
-              height: 38,
-              expand: true,
-            ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: GlassButton(
+            onPressed: canCommit ? () => startCommit(push: true) : null,
+            busy: page.pushingAfterCommit,
+            icon: Icons.north_rounded,
+            label: l.repoCommitAndPush,
+            tone: GlassTone.blue,
+            height: 38,
+            expand: true,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: GlassButton(
-              onPressed: canCommit ? () => runWithFeedback(context, () => page.commit(push: true)) : null,
-              icon: Icons.north_rounded,
-              label: context.l10n.repoCommitAndPush,
-              tone: GlassTone.blue,
-              height: 38,
-              expand: true,
-            ),
-          ),
-        ]),
+        ),
       ]),
     );
   }
@@ -578,7 +582,7 @@ class _DiffPane extends StatelessWidget {
             const SizedBox(width: 12),
           ],
           GlassButton(
-            onPressed: () => openInVsCode('${page.repo.path}/${file.path}'),
+            onPressed: () => openInVsCode(formatDiskPath('${page.repo.path}/${file.path}')),
             icon: Icons.code_rounded,
             height: 30,
             radius: 9,

@@ -49,6 +49,17 @@ String ciLabel(AppLocalizations l, CiStatus ci) => switch (ci.state) {
 String timeLeft(AppLocalizations l, Duration left) =>
     left.inSeconds < 45 ? l.almostDone : l.minutesLeft((left.inSeconds / 60).ceil());
 
+/// Formats a live countdown as `mm:ss` (under an hour) or `h:mm:ss` (an hour or longer).
+String formatCountdown(Duration remaining) {
+  final totalSeconds = remaining.isNegative ? 0 : remaining.inSeconds;
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+  final mm = minutes.toString().padLeft(2, '0');
+  final ss = seconds.toString().padLeft(2, '0');
+  return hours > 0 ? '$hours:$mm:$ss' : '$mm:$ss';
+}
+
 /// 2171 becomes 2k so a count always fits inside a button.
 String compactCount(int n) => n < 1000 ? '$n' : '${(n / 1000).round()}k';
 
@@ -105,7 +116,13 @@ String providerLabel(AppLocalizations l, AiProvider provider) => switch (provide
       AiProvider.anthropic => 'Anthropic API',
       AiProvider.openai => 'OpenAI API',
       AiProvider.deepseek => 'DeepSeek API',
+      AiProvider.minimax => 'MiniMax API',
+      AiProvider.kimi => 'Kimi (Moonshot) API',
       AiProvider.gemini => 'Google Gemini API',
+      AiProvider.xai => 'xAI (Grok) API',
+      AiProvider.mistral => 'Mistral API',
+      AiProvider.groq => 'Groq API',
+      AiProvider.openrouter => 'OpenRouter API',
       AiProvider.custom => l.providerCustom,
     };
 
@@ -115,5 +132,9 @@ String agentLabel(AppLocalizations l, AgentProvider agent) => switch (agent) {
       AgentProvider.off => l.agentOff,
     };
 
-/// Shows a path with the home folder as ~.
-String homePath(String path, String home) => path.startsWith(home) ? '~${path.substring(home.length)}' : path;
+/// Shows a path with the home folder as ~, normalized to the current OS separator.
+String homePath(String path, String home) {
+  final p = formatDiskPath(path);
+  final h = formatDiskPath(home);
+  return h.isNotEmpty && p.startsWith(h) ? '~${p.substring(h.length)}' : p;
+}

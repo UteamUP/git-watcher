@@ -164,7 +164,7 @@ class _Header extends StatelessWidget {
       Flexible(
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Flexible(
-            child: Text('GIT Watcher', style: Txt.strong.copyWith(fontSize: 13, color: ink.text), maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text('UteamUP GitWatcher', style: Txt.strong.copyWith(fontSize: 13, color: ink.text), maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(width: 5),
           Text('v$appVersion', style: Txt.muted.copyWith(fontSize: 10, color: ink.muted)),

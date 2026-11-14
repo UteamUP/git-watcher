@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:git_watcher/format.dart';
 import 'package:git_watcher/l10n/l10n.dart';
+import 'package:git_watcher/state/watcher_controller.dart';
 import 'package:git_watcher/ui/layout.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -68,5 +69,59 @@ void main() {
   test('large counts are shortened so they fit in a button', () {
     expect(compactCount(999), '999');
     expect(compactCount(2171), '2k');
+  });
+
+  test('copy path and auto-commit labels exist in English and Icelandic', () {
+    expect(en.copyDiskPath, 'Copy disk path');
+    expect(en.copyGitUrl, 'Copy Git URL');
+    expect(icelandic.copyDiskPath, 'Afrita slóð á diski');
+    expect(icelandic.copyGitUrl, 'Afrita Git slóð');
+    expect(icelandic.copiedToClipboard('Git', 'https://example.com/repo.git'), 'Git afrituð: https://example.com/repo.git');
+  });
+
+  test('every AI provider has a non-empty label in English and Icelandic', () {
+    for (final provider in AiProvider.values) {
+      expect(providerLabel(en, provider), isNotEmpty);
+      expect(providerLabel(icelandic, provider), isNotEmpty);
+    }
+    expect(providerLabel(en, AiProvider.minimax), 'MiniMax API');
+    expect(providerLabel(en, AiProvider.kimi), 'Kimi (Moonshot) API');
+  });
+
+  test('countdown formatting and per-repo automation countdowns compute remaining times cleanly', () {
+    expect(formatCountdown(const Duration(minutes: 4, seconds: 7)), '04:07');
+    expect(formatCountdown(const Duration(hours: 1, minutes: 5, seconds: 9)), '1:05:09');
+    expect(formatCountdown(const Duration(seconds: -3)), '00:00');
+    expect(en.cardCountdownCommit, 'Commit');
+    expect(en.cardCountdownPush, 'Push');
+    expect(en.cardCountdownSkill, 'Skill');
+    expect(icelandic.cardCountdownRunning, 'núna…');
+
+    const repoPath = r'C:\UteamUP_Development\ActiveProjects\SampleRepo';
+    final config = WatcherConfig(
+      root: r'C:\UteamUP_Development\ActiveProjects',
+      repoAutomation: {
+        formatDiskPath(repoPath): RepoAutomationConfig(
+          autoCommit: true,
+          autoPush: true,
+          syncIntervalMinutes: 5,
+          pushIntervalMinutes: 15,
+          watchCommitsForSkills: true,
+          skillIntervalMinutes: 60,
+          skills: [SkillStepConfig(skill: 'uteamup-cli upgrade')],
+        ),
+      },
+    );
+    final controller = WatcherController(
+      env: ProcessEnv({'HOME': r'C:\', 'USERPROFILE': r'C:\', 'PATH': ''}),
+      config: config,
+      locale: ValueNotifier(const Locale('en')),
+    );
+    addTearDown(controller.dispose);
+    final repo = RepoState(repoPath, null);
+    final start = controller.clock.value;
+    expect(controller.nextAutoCommitIn(repo, now: start.add(const Duration(minutes: 1))), const Duration(minutes: 4));
+    expect(controller.nextAutoPushIn(repo, now: start.add(const Duration(minutes: 3))), const Duration(minutes: 12));
+    expect(controller.nextSkillRunIn(repo, now: start.add(const Duration(minutes: 10))), const Duration(minutes: 50));
   });
 }

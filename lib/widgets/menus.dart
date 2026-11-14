@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
 import '../format.dart';
@@ -12,6 +13,12 @@ import '../ui/feedback.dart';
 import '../ui/glass.dart';
 import '../ui/system.dart';
 import 'helper_panel.dart';
+import 'repo_settings_dialog.dart';
+
+Future<void> copyToClipboard(BuildContext context, String label, String value) async {
+  await Clipboard.setData(ClipboardData(text: value));
+  if (context.mounted) toast(context, context.l10n.copiedToClipboard(label, value));
+}
 
 MenuItemButton _item(IconData icon, String label, VoidCallback? onPressed, {Color? color}) => MenuItemButton(
       style: menuItemStyle,
@@ -75,12 +82,24 @@ class RepoMenu extends StatelessWidget {
           _item(Icons.build_circle_outlined, l.cardMenuFixCi, idle ? () => startFixCi(context, controller, [repo]) : null,
               color: Palette.rose),
         if (repo.ci.url != null) _item(Icons.open_in_new_rounded, l.cardMenuOpenCiRun, () => openUrl(repo.ci.url!)),
-        _item(Icons.code_rounded, l.openInVsCode, () => openInVsCode(repo.path)),
-        _item(Icons.folder_open_rounded, l.cardMenuOpenFinder, () => openInFinder(repo.path)),
-        _item(Icons.terminal_rounded, l.cardMenuOpenTerminal, () => openInTerminal(repo.path)),
+        _item(Icons.folder_copy_outlined, l.copyDiskPath, () => copyToClipboard(context, l.copyDiskPath, repo.diskPath)),
+        _item(
+          Icons.link_rounded,
+          l.copyGitUrl,
+          repo.remoteUrl == null ? null : () => copyToClipboard(context, l.copyGitUrl, repo.remoteUrl!),
+        ),
+        _item(Icons.code_rounded, l.openInVsCode, () => openInVsCode(repo.diskPath)),
+        _item(Icons.folder_open_rounded, l.cardMenuOpenFinder, () => openInFinder(repo.diskPath)),
+        _item(Icons.terminal_rounded, l.cardMenuOpenTerminal, () => openInTerminal(repo.diskPath)),
         _item(Icons.image_outlined, l.cardMenuChangeIcon, () => _pickIcon(l)),
         if (controller.config.icons.containsKey(repo.path))
           _item(Icons.restart_alt_rounded, l.cardMenuDefaultIcon, () => controller.setIcon(repo, null)),
+        _item(
+          Icons.tune_rounded,
+          l.cardMenuRepoSettings,
+          () => showRepoSettings(context, controller, repo),
+          color: (controller.repoAutomation(repo)?.hasAnyAutomation ?? false) ? Palette.violet : null,
+        ),
         _divider,
         _item(Icons.visibility_off_outlined, l.cardMenuHideRepo, () {
           if (Navigator.of(context).canPop()) Navigator.of(context).pop();
@@ -102,10 +121,67 @@ class RepoMenu extends StatelessWidget {
       acceptedTypeGroups: [
         XTypeGroup(label: l.cardMenuImages, extensions: const ['png', 'jpg', 'jpeg', 'svg']),
       ],
-      initialDirectory: repo.path,
+      initialDirectory: repo.diskPath,
       confirmButtonText: l.cardChoose,
     );
     if (file != null) controller.setIcon(repo, file.path);
+  }
+}
+
+/// Quick copy menu for both the local disk path (macOS/Windows native format) and the Git remote URL.
+class CopyPathButton extends StatelessWidget {
+  const CopyPathButton({super.key, required this.repo, this.size = 28});
+
+  final RepoState repo;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final remote = repo.remoteUrl;
+    return MenuAnchor(
+      style: glassMenuStyle,
+      alignmentOffset: const Offset(-180, 6),
+      menuChildren: [
+        MenuItemButton(
+          style: menuItemStyle,
+          leadingIcon: const Icon(Icons.folder_copy_outlined, color: Palette.blue),
+          onPressed: () => copyToClipboard(context, l.copyDiskPath, repo.diskPath),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(l.copyDiskPath, style: Txt.strong.copyWith(fontSize: 13)),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Text(repo.diskPath, style: Txt.muted.copyWith(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ]),
+          ),
+        ),
+        MenuItemButton(
+          style: menuItemStyle,
+          leadingIcon: Icon(Icons.link_rounded, color: remote == null ? Palette.inkFaint : Palette.violet),
+          onPressed: remote == null ? null : () => copyToClipboard(context, l.copyGitUrl, remote),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(l.copyGitUrl, style: Txt.strong.copyWith(fontSize: 13, color: remote == null ? Palette.inkFaint : Palette.ink)),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Text(remote ?? l.cardNoRemote, style: Txt.muted.copyWith(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ]),
+          ),
+        ),
+      ],
+      builder: (context, menu, _) => GlassButton(
+        onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+        icon: Icons.content_copy_rounded,
+        height: size,
+        radius: size * .3,
+        tooltip: l.copyPathsTooltip,
+      ),
+    );
   }
 }
 

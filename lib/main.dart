@@ -159,7 +159,7 @@ class _GitWatcherAppState extends State<GitWatcherApp> {
   Widget build(BuildContext context) => ValueListenableBuilder(
         valueListenable: _locale,
         builder: (context, locale, _) => MaterialApp(
-          title: 'GIT Watcher',
+          title: 'UteamUP GitWatcher',
           navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),

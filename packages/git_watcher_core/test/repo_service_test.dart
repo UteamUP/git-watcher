@@ -167,6 +167,68 @@ void main() {
   });
 
   test('push without a remote fails with a clear message', () async {
+    expect((await service.status(repo)).remoteUrl, isNull);
     expect(() => service.push(repo), throwsA(isA<GitException>().having((e) => e.message, 'message', contains('no remote'))));
+  });
+
+  test('status reads the git remote URL from origin and exposes headHash', () async {
+    await git(['remote', 'add', 'origin', 'https://github.com/UteamUP/UteamUP_Sample.git']);
+    final status = await service.status(repo);
+    expect(status.remoteUrl, 'https://github.com/UteamUP/UteamUP_Sample.git');
+    expect(status.headHash, isNotNull);
+    expect(status.headHash!.length, 40);
+  });
+
+  test('RepoAutomationConfig round-trips independent commit/push flags and skill steps', () {
+    final original = RepoAutomationConfig(
+      autoCommit: true,
+      autoPush: false,
+      syncIntervalMinutes: 10,
+      pushIntervalMinutes: 25,
+      watchCommitsForSkills: true,
+      skillIntervalMinutes: 30,
+      lastSkillCommit: 'abc1234567890',
+      skills: [
+        SkillStepConfig(skill: 'uteamup-mobilerelease', agent: AgentProvider.claudeCode, model: 'opus'),
+        SkillStepConfig(skill: 'uteamup-cli', agent: AgentProvider.codex, model: 'gpt-5.4', enabled: false),
+      ],
+    );
+    final decoded = RepoAutomationConfig.fromJson(original.toJson().cast<String, dynamic>());
+    expect(decoded.autoCommit, isTrue);
+    expect(decoded.autoPush, isFalse);
+    expect(decoded.syncIntervalMinutes, 10);
+    expect(decoded.pushIntervalMinutes, 25);
+    final legacyDecoded = RepoAutomationConfig.fromJson({'autoCommit': true, 'autoPush': true, 'syncIntervalMinutes': 12});
+    expect(legacyDecoded.pushIntervalMinutes, 12);
+    expect(decoded.watchCommitsForSkills, isTrue);
+    expect(decoded.skillIntervalMinutes, 30);
+    expect(decoded.lastSkillCommit, 'abc1234567890');
+    expect(decoded.skills, hasLength(2));
+    expect(decoded.skills[0].skill, 'uteamup-mobilerelease');
+    expect(decoded.skills[0].agent, AgentProvider.claudeCode);
+    expect(decoded.skills[0].model, 'opus');
+    expect(decoded.skills[0].enabled, isTrue);
+    expect(decoded.skills[1].skill, 'uteamup-cli');
+    expect(decoded.skills[1].agent, AgentProvider.codex);
+    expect(decoded.skills[1].model, 'gpt-5.4');
+    expect(decoded.skills[1].enabled, isFalse);
+  });
+
+  test('AiService discovers skills and resolves SKILL.md across root and repo folders', () async {
+    final skillDir = Directory('${root.path}/.agent/skills/sample-release');
+    await skillDir.create(recursive: true);
+    final skillFile = File('${skillDir.path}/SKILL.md');
+    await skillFile.writeAsString('---\nname: sample-release\n---\n');
+
+    final env = ProcessEnv({'HOME': root.path, 'USERPROFILE': root.path, 'PATH': ''});
+    final ai = AiService(env);
+    final discovered = ai.discoverSkills(root: root.path, repo: repo);
+    expect(discovered, contains('sample-release'));
+    expect(ai.resolveSkillFile('sample-release', root: root.path, repo: repo), isNotNull);
+    expect(ai.resolveSkillFile('sample-release upgrade', root: root.path, repo: repo), isNotNull);
+    expect(ai.resolveSkillFile('/sample-release --dry-run', root: root.path, repo: repo), isNotNull);
+    final parsed = AiService.parseSkillSpec('/uteamup-cli upgrade');
+    expect(parsed.name, 'uteamup-cli');
+    expect(parsed.args, 'upgrade');
   });
 }

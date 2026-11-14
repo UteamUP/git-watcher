@@ -134,7 +134,7 @@
   "providerCustom": "OpenAI-compatible API",
   "agentOff": "Off",
   "aiBadKey": "The key must not be empty or contain spaces, quotes or backslashes",
-  "aiKeychainFailed": "Could not save the key in the Keychain: {detail}",
+  "aiKeychainFailed": "Could not save the API key: {detail}",
   "@aiKeychainFailed": {
     "placeholders": {
       "detail": {
@@ -143,7 +143,7 @@
     }
   },
   "aiEmptyReply": "The AI returned an empty answer",
-  "aiCliMissing": "{tool} was not found on this Mac",
+  "aiCliMissing": "{tool} was not found on this computer",
   "@aiCliMissing": {
     "placeholders": {
       "tool": {
@@ -401,7 +401,7 @@
   "settingsLanguage": "Language",
   "settingsLanguageSubtitle": "Applies to the whole app right away.",
   "settingsCommitAiTitle": "AI for commit messages",
-  "settingsCommitAiSubtitle": "Used by the AI button on each card, AI messages and the AI helper.",
+  "settingsCommitAiSubtitle": "Used by Commit, Commit all and the AI helper.",
   "settingsTest": "Test",
   "settingsWaiting": "Waiting for a reply · {seconds} s · {speed}",
   "@settingsWaiting": {
@@ -473,11 +473,13 @@
   },
   "settingsBaseUrl": "Base URL",
   "settingsApiKey": "API key",
-  "settingsKeySavedHint": "Saved in the Keychain · type a new key to replace it",
+  "settingsKeySavedHint": "Saved securely · type a new key to replace it",
   "settingsKeyPasteHint": "Paste the key here",
   "settingsSave": "Save",
-  "settingsKeySaved": "Key saved in the macOS Keychain",
+  "settingsKeySaved": "API key saved securely",
   "settingsDelete": "Delete",
+  "settingsChooseModel": "Choose model",
+  "settingsRefreshModels": "Fetch models from API",
   "appCiNotification": "{repo}: CI {status}",
   "@appCiNotification": {
     "placeholders": {
@@ -868,5 +870,215 @@
         "type": "String"
       }
     }
-  }
+  },
+  "copyPathsTooltip": "Copy disk path or Git URL",
+  "copyDiskPath": "Copy disk path",
+  "copyGitUrl": "Copy Git URL",
+  "cardNoRemote": "No Git remote",
+  "copiedToClipboard": "{label} copied: {value}",
+  "@copiedToClipboard": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "topCommitAllTooltip": "AI writes commit messages and commits every repo with changes",
+  "cardCommitTooltip": "AI writes a commit message and commits",
+  "appBusyCommitting": "AI commit…",
+  "cardAiCommitting": "{provider} is writing a message and committing · {speed}",
+  "@cardAiCommitting": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMenuRepoSettings": "Repo settings…",
+  "cardAutoBadgeTooltip": "Automation active: {details}",
+  "@cardAutoBadgeTooltip": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "cardAutoCommitShort": "Auto-commit ({minutes}m)",
+  "@cardAutoCommitShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardAutoPushShort": "Auto-push ({minutes}m)",
+  "@cardAutoPushShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardAutoCommitPushShort": "Auto commit & push ({minutes}m)",
+  "@cardAutoCommitPushShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardAutoSkillsShort": "{count, plural, =1{1 skill ({minutes}m)} other{{count} skills ({minutes}m)}}",
+  "@cardAutoSkillsShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "repoSettingsTitle": "Repo settings · {repo}",
+  "@repoSettingsTitle": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "repoAutoSyncTitle": "Automatic commit and push",
+  "repoAutoSyncSubtitle": "Runs periodically when the repository is idle. Enable commit, push, or both independently.",
+  "repoAutoCommit": "Commit automatically",
+  "repoAutoCommitHint": "AI writes a commit message and commits working changes",
+  "repoAutoPush": "Push automatically",
+  "repoAutoPushHint": "Fetches, rebases if behind, and pushes waiting commits",
+  "repoIntervalMinutes": "Every (minutes)",
+  "repoMinutesSuffix": "min",
+  "repoRunSyncNow": "Run sync now",
+  "repoSkillsTitle": "Run skills on new commits",
+  "repoSkillsSubtitle": "Periodically checks for new commits and runs the listed skills in order using your chosen agent and model.",
+  "repoSkillsWatchToggle": "Check commits & run skills",
+  "repoSkillsCheckInterval": "Check every (minutes)",
+  "repoSkillsRunNow": "Run skills now",
+  "repoSkillsEmpty": "No skills in the list yet. Pick an installed skill or type a skill name below.",
+  "repoSkillNameHint": "Skill name (e.g. uteamup-mobilerelease)",
+  "repoSkillPickInstalled": "Installed skills",
+  "repoSkillAdd": "Add skill",
+  "repoSkillModelDefault": "Default model",
+  "repoSkillModelHint": "Model (optional)",
+  "repoSkillMoveUp": "Move up",
+  "repoSkillMoveDown": "Move down",
+  "repoSkillRemove": "Remove skill",
+  "repoLastCheckedCommit": "Baseline commit: {hash}",
+  "@repoLastCheckedCommit": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "appBusyAutoSync": "Auto sync…",
+  "appBusyRunningSkill": "Skill: {skill}…",
+  "@appBusyRunningSkill": {
+    "placeholders": {
+      "skill": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperRunningSkillsIn": "{count, plural, =1{running 1 skill in {repo}…} other{running {count} skills in {repo}…}}",
+  "@topHelperRunningSkillsIn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperSkillsDone": "Done · {done} of {total} skills finished in {repo}",
+  "@topHelperSkillsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "repo": {
+        "type": "String"
+      }
+    }
+  },
+  "topHelperSkillStep": "Skill {skill} ({agent}{model})",
+  "@topHelperSkillStep": {
+    "placeholders": {
+      "skill": {
+        "type": "String"
+      },
+      "agent": {
+        "type": "String"
+      },
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "cardAutoCommitPushDiffShort": "Auto commit ({commitMinutes}m) & push ({pushMinutes}m)",
+  "@cardAutoCommitPushDiffShort": {
+    "placeholders": {
+      "commitMinutes": {
+        "type": "int"
+      },
+      "pushMinutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardCountdownCommit": "Commit",
+  "cardCountdownPush": "Push",
+  "cardCountdownSkill": "Skill",
+  "cardCountdownRunning": "now…",
+  "cardCountdownCommitTooltip": "Next auto-commit in {time} (every {minutes}m) · click to edit",
+  "@cardCountdownCommitTooltip": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardCountdownPushTooltip": "Next auto-push in {time} (every {minutes}m) · click to edit",
+  "@cardCountdownPushTooltip": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cardCountdownSkillTooltip": "Next skill check in {time} (every {minutes}m) · click to edit",
+  "@cardCountdownSkillTooltip": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "repoCommitIntervalMinutes": "Commit every (min)",
+  "repoPushIntervalMinutes": "Push every (min)"
 }

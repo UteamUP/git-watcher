@@ -263,6 +263,7 @@ class McpServer {
     final repos = await GitWatcherService.discoverRepos(config.root, recursive: config.recursive);
     for (final repo in repos) {
       if (repo == wanted ||
+          formatDiskPath(repo).toLowerCase() == formatDiskPath(wanted).toLowerCase() ||
           repoFolderName(repo).toLowerCase() == wanted.toLowerCase() ||
           repoDisplayName(repo).toLowerCase() == wanted.toLowerCase()) {
         return repo;

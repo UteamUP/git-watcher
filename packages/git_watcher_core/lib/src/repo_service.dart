@@ -43,7 +43,7 @@ class GitWatcherService {
   /// Repositories below the root are not searched further, because nested
   /// repos are rare and their build folders are large.
   static Future<List<String>> discoverRepos(String root, {bool recursive = true, int maxDepth = 5}) async {
-    final base = root.length > 1 && root.endsWith('/') ? root.substring(0, root.length - 1) : root;
+    final base = formatDiskPath(root);
     final repos = <String>[];
     if (!await Directory(base).exists()) return repos;
 
@@ -74,7 +74,7 @@ class GitWatcherService {
   }
 
   static bool _hidden(String path) {
-    final name = path.split('/').last;
+    final name = repoFolderName(path);
     return name.startsWith('.') || _skipDirs.contains(name);
   }
 
@@ -99,30 +99,44 @@ class GitWatcherService {
 
   Future<RepoStatus> status(String repo) async {
     final statusOut = git.check(repo, ['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all']);
-    final lastCommit = git.run(repo, ['log', '-1', '--format=%ct%x1f%s']);
+    final lastCommit = git.run(repo, ['log', '-1', '--format=%ct%x1f%s%x1f%H']);
+    final remoteUrl = _remoteUrl(repo);
     final operation = await _operation(repo);
     final parsed = parseStatusV2((await statusOut).stdout);
 
     DateTime? lastAt;
     String? lastSubject;
+    String? headHash;
     final log = await lastCommit;
     if (log.ok && log.stdout.trim().isNotEmpty) {
       final fields = log.stdout.trim().split('\x1f');
       lastAt = DateTime.fromMillisecondsSinceEpoch((int.tryParse(fields[0]) ?? 0) * 1000);
       lastSubject = fields.length > 1 ? fields[1] : null;
+      headHash = fields.length > 2 && fields[2].isNotEmpty ? fields[2] : null;
     }
 
     return RepoStatus(
       branch: parsed.branch,
       upstream: parsed.upstream,
+      remoteUrl: await remoteUrl,
       ahead: parsed.ahead,
       behind: parsed.behind,
       hasCommits: parsed.hasCommits,
       files: parsed.files,
       operation: operation,
+      headHash: headHash,
       lastCommitAt: lastAt,
       lastCommitSubject: lastSubject,
     );
+  }
+
+  Future<String?> _remoteUrl(String repo) async {
+    final origin = await git.run(repo, ['remote', 'get-url', 'origin']);
+    if (origin.ok && origin.stdout.trim().isNotEmpty) return origin.stdout.trim();
+    final remotes = (await git.run(repo, ['remote'])).stdout.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    if (remotes.isEmpty) return null;
+    final first = await git.run(repo, ['remote', 'get-url', remotes.first]);
+    return first.ok && first.stdout.trim().isNotEmpty ? first.stdout.trim() : null;
   }
 
   Future<RepoOperation> _operation(String repo) async {
@@ -320,6 +334,20 @@ class GitWatcherService {
 
   Future<void> _trash(String path) async {
     if (!await File(path).exists() && !await Directory(path).exists()) return;
+    if (Platform.isWindows) {
+      final escaped = path.replaceAll("'", "''");
+      final cmd = '''
+Add-Type -AssemblyName Microsoft.VisualBasic
+if (Test-Path -LiteralPath '$escaped' -PathType Container) {
+  [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory('$escaped', 'OnlyErrorDialogs', 'SendToRecycleBin')
+} else {
+  [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile('$escaped', 'OnlyErrorDialogs', 'SendToRecycleBin')
+}
+''';
+      final result = await Process.run('powershell', ['-NoProfile', '-NonInteractive', '-Command', cmd]);
+      if (result.exitCode != 0) throw GitException('Could not move $path to the Recycle Bin: ${result.stderr}');
+      return;
+    }
     final result = await Process.run('/usr/bin/trash', [path]);
     if (result.exitCode != 0) throw GitException('Could not move $path to the Trash: ${result.stderr}');
   }

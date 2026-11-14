@@ -167,7 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiKeychainFailed(String detail) {
-    return 'Could not save the key in the Keychain: $detail';
+    return 'Could not save the API key: $detail';
   }
 
   @override
@@ -175,7 +175,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiCliMissing(String tool) {
-    return '$tool was not found on this Mac';
+    return '$tool was not found on this computer';
   }
 
   @override
@@ -510,7 +510,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCommitAiSubtitle =>
-      'Used by the AI button on each card, AI messages and the AI helper.';
+      'Used by Commit, Commit all and the AI helper.';
 
   @override
   String get settingsTest => 'Test';
@@ -588,7 +588,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsKeySavedHint =>
-      'Saved in the Keychain · type a new key to replace it';
+      'Saved securely · type a new key to replace it';
 
   @override
   String get settingsKeyPasteHint => 'Paste the key here';
@@ -597,10 +597,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSave => 'Save';
 
   @override
-  String get settingsKeySaved => 'Key saved in the macOS Keychain';
+  String get settingsKeySaved => 'API key saved securely';
 
   @override
   String get settingsDelete => 'Delete';
+
+  @override
+  String get settingsChooseModel => 'Choose model';
+
+  @override
+  String get settingsRefreshModels => 'Fetch models from API';
 
   @override
   String appCiNotification(String repo, String status) {
@@ -1016,4 +1022,221 @@ class AppLocalizationsEn extends AppLocalizations {
   String mbPushed(String repo) {
     return '$repo: pushed';
   }
+
+  @override
+  String get copyPathsTooltip => 'Copy disk path or Git URL';
+
+  @override
+  String get copyDiskPath => 'Copy disk path';
+
+  @override
+  String get copyGitUrl => 'Copy Git URL';
+
+  @override
+  String get cardNoRemote => 'No Git remote';
+
+  @override
+  String copiedToClipboard(String label, String value) {
+    return '$label copied: $value';
+  }
+
+  @override
+  String get topCommitAllTooltip =>
+      'AI writes commit messages and commits every repo with changes';
+
+  @override
+  String get cardCommitTooltip => 'AI writes a commit message and commits';
+
+  @override
+  String get appBusyCommitting => 'AI commit…';
+
+  @override
+  String cardAiCommitting(String provider, String speed) {
+    return '$provider is writing a message and committing · $speed';
+  }
+
+  @override
+  String get cardMenuRepoSettings => 'Repo settings…';
+
+  @override
+  String cardAutoBadgeTooltip(String details) {
+    return 'Automation active: $details';
+  }
+
+  @override
+  String cardAutoCommitShort(int minutes) {
+    return 'Auto-commit (${minutes}m)';
+  }
+
+  @override
+  String cardAutoPushShort(int minutes) {
+    return 'Auto-push (${minutes}m)';
+  }
+
+  @override
+  String cardAutoCommitPushShort(int minutes) {
+    return 'Auto commit & push (${minutes}m)';
+  }
+
+  @override
+  String cardAutoSkillsShort(int count, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skills (${minutes}m)',
+      one: '1 skill (${minutes}m)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repoSettingsTitle(String repo) {
+    return 'Repo settings · $repo';
+  }
+
+  @override
+  String get repoAutoSyncTitle => 'Automatic commit and push';
+
+  @override
+  String get repoAutoSyncSubtitle =>
+      'Runs periodically when the repository is idle. Enable commit, push, or both independently.';
+
+  @override
+  String get repoAutoCommit => 'Commit automatically';
+
+  @override
+  String get repoAutoCommitHint =>
+      'AI writes a commit message and commits working changes';
+
+  @override
+  String get repoAutoPush => 'Push automatically';
+
+  @override
+  String get repoAutoPushHint =>
+      'Fetches, rebases if behind, and pushes waiting commits';
+
+  @override
+  String get repoIntervalMinutes => 'Every (minutes)';
+
+  @override
+  String get repoMinutesSuffix => 'min';
+
+  @override
+  String get repoRunSyncNow => 'Run sync now';
+
+  @override
+  String get repoSkillsTitle => 'Run skills on new commits';
+
+  @override
+  String get repoSkillsSubtitle =>
+      'Periodically checks for new commits and runs the listed skills in order using your chosen agent and model.';
+
+  @override
+  String get repoSkillsWatchToggle => 'Check commits & run skills';
+
+  @override
+  String get repoSkillsCheckInterval => 'Check every (minutes)';
+
+  @override
+  String get repoSkillsRunNow => 'Run skills now';
+
+  @override
+  String get repoSkillsEmpty =>
+      'No skills in the list yet. Pick an installed skill or type a skill name below.';
+
+  @override
+  String get repoSkillNameHint => 'Skill name (e.g. uteamup-mobilerelease)';
+
+  @override
+  String get repoSkillPickInstalled => 'Installed skills';
+
+  @override
+  String get repoSkillAdd => 'Add skill';
+
+  @override
+  String get repoSkillModelDefault => 'Default model';
+
+  @override
+  String get repoSkillModelHint => 'Model (optional)';
+
+  @override
+  String get repoSkillMoveUp => 'Move up';
+
+  @override
+  String get repoSkillMoveDown => 'Move down';
+
+  @override
+  String get repoSkillRemove => 'Remove skill';
+
+  @override
+  String repoLastCheckedCommit(String hash) {
+    return 'Baseline commit: $hash';
+  }
+
+  @override
+  String get appBusyAutoSync => 'Auto sync…';
+
+  @override
+  String appBusyRunningSkill(String skill) {
+    return 'Skill: $skill…';
+  }
+
+  @override
+  String topHelperRunningSkillsIn(int count, String repo) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'running $count skills in $repo…',
+      one: 'running 1 skill in $repo…',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String topHelperSkillsDone(int done, int total, String repo) {
+    return 'Done · $done of $total skills finished in $repo';
+  }
+
+  @override
+  String topHelperSkillStep(String skill, String agent, String model) {
+    return 'Skill $skill ($agent$model)';
+  }
+
+  @override
+  String cardAutoCommitPushDiffShort(int commitMinutes, int pushMinutes) {
+    return 'Auto commit (${commitMinutes}m) & push (${pushMinutes}m)';
+  }
+
+  @override
+  String get cardCountdownCommit => 'Commit';
+
+  @override
+  String get cardCountdownPush => 'Push';
+
+  @override
+  String get cardCountdownSkill => 'Skill';
+
+  @override
+  String get cardCountdownRunning => 'now…';
+
+  @override
+  String cardCountdownCommitTooltip(String time, int minutes) {
+    return 'Next auto-commit in $time (every ${minutes}m) · click to edit';
+  }
+
+  @override
+  String cardCountdownPushTooltip(String time, int minutes) {
+    return 'Next auto-push in $time (every ${minutes}m) · click to edit';
+  }
+
+  @override
+  String cardCountdownSkillTooltip(String time, int minutes) {
+    return 'Next skill check in $time (every ${minutes}m) · click to edit';
+  }
+
+  @override
+  String get repoCommitIntervalMinutes => 'Commit every (min)';
+
+  @override
+  String get repoPushIntervalMinutes => 'Push every (min)';
 }

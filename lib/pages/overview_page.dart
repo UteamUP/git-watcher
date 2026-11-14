@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:git_watcher_core/git_watcher_core.dart';
 
+import '../format.dart';
 import '../l10n/l10n.dart';
 import '../state/watcher_controller.dart';
 import '../theme.dart';
@@ -61,11 +64,11 @@ class _Header extends StatelessWidget {
           SizedBox(
             height: 52,
             child: Padding(
-              padding: const EdgeInsets.only(left: 84, right: 16),
+              padding: EdgeInsets.only(left: Platform.isMacOS ? 84 : 20, right: 16),
               child: Row(children: [
                 const LogoTile(size: 34),
                 const SizedBox(width: 10),
-                Text('GIT Watcher', style: Txt.title.copyWith(fontSize: 16)),
+                Text('UteamUP GitWatcher', style: Txt.title.copyWith(fontSize: 16)),
                 const SizedBox(width: 6),
                 Text('v$appVersion', style: Txt.muted.copyWith(fontSize: 11.5)),
                 const SizedBox(width: 14),
@@ -115,18 +118,20 @@ class _Header extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(children: [
                 GlassButton(
-                  onPressed: controller.dirtyCount > 0 ? () => runWithFeedback(context, controller.writeAllMessages) : null,
-                  icon: Icons.edit_note_rounded,
-                  label: l.topAiMessages,
-                  tone: GlassTone.rose,
-                  tooltip: l.topAiMessagesTooltip,
-                ),
-                const SizedBox(width: 8),
-                GlassButton(
-                  onPressed: controller.dirtyCount > 0 ? () => runWithFeedback(context, controller.commitAll) : null,
-                  icon: Icons.check_circle_outline_rounded,
+                  onPressed: controller.dirtyCount > 0 && !controller.committingAll
+                      ? () {
+                          toast(
+                            context,
+                            l.cardAiCommitting(providerLabel(l, controller.aiProvider), providerSpeed(l, controller.aiProvider)),
+                          );
+                          runWithFeedback(context, controller.commitAll);
+                        }
+                      : null,
+                  busy: controller.committingAll,
+                  icon: Icons.auto_awesome_rounded,
                   label: l.topCommitAll,
                   tone: GlassTone.green,
+                  tooltip: l.topCommitAllTooltip,
                 ),
                 const SizedBox(width: 8),
                 GlassButton(

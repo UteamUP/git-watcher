@@ -11,6 +11,7 @@ import 'donut.dart';
 import 'helper_panel.dart';
 import 'menus.dart';
 import 'repo_icon.dart';
+import 'repo_settings_dialog.dart';
 
 class RepoCard extends StatelessWidget {
   const RepoCard({super.key, required this.controller, required this.repo, required this.onOpen});
@@ -53,39 +54,17 @@ class RepoCard extends StatelessWidget {
         const SizedBox(height: 11),
         _Info(controller: controller, repo: repo),
         const Spacer(),
-        GlassField(
-          controller: repo.message,
-          hint: dirty ? l.cardCommitHint : l.nothingToCommit,
-          enabled: dirty && idle,
-          icon: Icons.chat_bubble_outline_rounded,
-          onSubmitted: (_) => _commit(context),
-          suffix: GlassButton(
-            onPressed: dirty && idle
-                ? () {
-                    toast(context,
-                        l.cardAiWriting(providerLabel(l, controller.aiProvider), providerSpeed(l, controller.aiProvider)));
-                    runWithFeedback(context, () => controller.writeMessage(repo));
-                  }
-                : null,
-            busy: repo.writing,
-            icon: Icons.auto_awesome_rounded,
-            tone: GlassTone.rose,
-            height: 30,
-            radius: 8,
-            tooltip: l.cardAiWriteTooltip,
-          ),
-        ),
-        const SizedBox(height: 10),
         Row(children: [
           Expanded(
             child: GlassButton(
-              onPressed: dirty && idle ? () => _commit(context) : null,
-              busy: repo.busy == 'Commit…',
-              icon: Icons.check_rounded,
+              onPressed: dirty && idle ? () => _commit(context, l) : null,
+              busy: repo.committing,
+              icon: Icons.auto_awesome_rounded,
               label: dirty ? 'Commit ${compactCount(repo.files.length)}' : 'Commit',
               tone: GlassTone.green,
               height: 38,
               expand: true,
+              tooltip: l.cardCommitTooltip,
             ),
           ),
           const SizedBox(width: 10),
@@ -105,7 +84,10 @@ class RepoCard extends StatelessWidget {
     );
   }
 
-  void _commit(BuildContext context) => runWithFeedback(context, () => controller.commit(repo));
+  void _commit(BuildContext context, AppLocalizations l) {
+    toast(context, l.cardAiCommitting(providerLabel(l, controller.aiProvider), providerSpeed(l, controller.aiProvider)));
+    runWithFeedback(context, () => controller.commit(repo));
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -118,40 +100,59 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final branch = repo.status?.branch ?? '…';
-    final root = controller.config.root;
-    final where = repo.path == root ? repoFolderName(root) : repo.path.substring(root.length + 1);
+    final showSlug = repo.folderName != repo.name;
     return Row(children: [
-      RepoIcon(name: repo.name, iconPath: repo.iconPath),
-      const SizedBox(width: 11),
+      RepoIcon(name: repo.name, iconPath: repo.iconPath, size: 40),
+      const SizedBox(width: 10),
       Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(repo.name, style: Txt.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 3),
-          Row(children: [
-            const Icon(Icons.call_split_rounded, size: 13, color: Palette.inkSoft),
-            const SizedBox(width: 3),
+        child: Tooltip(
+          message: '${repo.folderName}\n${repo.diskPath}',
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-              repo.dirty ? '$branch*' : branch,
-              style: Txt.body.copyWith(fontSize: 11.5, fontWeight: FontWeight.w400, color: repo.dirty ? Palette.orange : Palette.inkSoft),
+              repo.name,
+              style: Txt.title.copyWith(fontSize: 16.5, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text('· $where', style: Txt.muted.copyWith(fontSize: 11.5), maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
+            const SizedBox(height: 3),
+            Row(children: [
+              const Icon(Icons.call_split_rounded, size: 13, color: Palette.inkSoft),
+              const SizedBox(width: 3),
+              Flexible(
+                child: Text(
+                  repo.dirty ? '$branch*' : branch,
+                  style: Txt.body.copyWith(fontSize: 11.5, fontWeight: FontWeight.w500, color: repo.dirty ? Palette.orange : Palette.inkSoft),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (showSlug) ...[
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text('· ${repo.folderName}', style: Txt.muted.copyWith(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ]),
           ]),
-        ]),
+        ),
       ),
-      const SizedBox(width: 6),
+      const SizedBox(width: 5),
+      if (controller.repoAutomation(repo)?.hasAnyAutomation ?? false) ...[
+        _AutomationBadge(controller: controller, repo: repo),
+        const SizedBox(width: 5),
+      ],
+      CopyPathButton(repo: repo, size: 28),
+      const SizedBox(width: 5),
       GlassButton(
         onPressed: onOpen,
-        busy: repo.busy != null,
+        busy: repo.busy != null && !repo.committing && repo.busy != 'Push…',
         icon: Icons.visibility_outlined,
-        height: 30,
-        radius: 9,
+        height: 28,
+        radius: 8.5,
         tooltip: repo.busy ?? context.l10n.cardViewChanges,
       ),
-      const SizedBox(width: 6),
-      RepoMenu(controller: controller, repo: repo),
+      const SizedBox(width: 5),
+      RepoMenu(controller: controller, repo: repo, size: 28),
     ]);
   }
 }
@@ -237,6 +238,8 @@ class _Info extends StatelessWidget {
       _ => (Icons.compare_arrows_rounded, Palette.green, l.cardUpToDate(status?.upstream ?? 'remote'), true),
     };
 
+    final auto = controller.repoAutomation(repo);
+
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
         const Icon(Icons.commit_rounded, size: 15, color: Palette.inkSoft),
@@ -253,6 +256,10 @@ class _Info extends StatelessWidget {
       _Line(icon: syncIcon, color: syncColor, text: syncText, muted: syncMuted),
       const SizedBox(height: 7),
       _CiRow(controller: controller, repo: repo, ci: ci),
+      if (auto != null && auto.hasAnyAutomation) ...[
+        const SizedBox(height: 8),
+        _AutomationCountdowns(controller: controller, repo: repo, auto: auto),
+      ],
     ]);
   }
 }
@@ -366,4 +373,192 @@ class _Line extends StatelessWidget {
           child: Text(text, style: muted ? Txt.muted : Txt.body.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ]);
+}
+
+class _AutomationCountdowns extends StatelessWidget {
+  const _AutomationCountdowns({required this.controller, required this.repo, required this.auto});
+
+  final WatcherController controller;
+  final RepoState repo;
+  final RepoAutomationConfig auto;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: controller.clock,
+      builder: (context, now, _) {
+        final commitLeft = controller.nextAutoCommitIn(repo, now: now);
+        final pushLeft = controller.nextAutoPushIn(repo, now: now);
+        final skillLeft = controller.nextSkillRunIn(repo, now: now);
+        final items = <_CountdownSpec>[
+          if (commitLeft != null)
+            _CountdownSpec(
+              icon: Icons.auto_awesome_rounded,
+              tone: GlassTone.green,
+              accent: Palette.green,
+              label: l.cardCountdownCommit,
+              timeText: repo.committing ? l.cardCountdownRunning : formatCountdown(commitLeft),
+              tooltip: l.cardCountdownCommitTooltip(formatCountdown(commitLeft), auto.syncIntervalMinutes),
+            ),
+          if (pushLeft != null)
+            _CountdownSpec(
+              icon: Icons.north_rounded,
+              tone: GlassTone.blue,
+              accent: Palette.blue,
+              label: l.cardCountdownPush,
+              timeText: (repo.busy == 'Push…' || repo.busy == l.appBusyAutoSync)
+                  ? l.cardCountdownRunning
+                  : formatCountdown(pushLeft),
+              tooltip: l.cardCountdownPushTooltip(formatCountdown(pushLeft), auto.pushIntervalMinutes),
+            ),
+          if (skillLeft != null)
+            _CountdownSpec(
+              icon: Icons.bolt_rounded,
+              tone: GlassTone.violet,
+              accent: Palette.violet,
+              label: l.cardCountdownSkill,
+              timeText: (repo.busy != null && repo.busy!.startsWith('Skill:'))
+                  ? l.cardCountdownRunning
+                  : formatCountdown(skillLeft),
+              tooltip: l.cardCountdownSkillTooltip(formatCountdown(skillLeft), auto.skillIntervalMinutes),
+            ),
+        ];
+        if (items.isEmpty) return const SizedBox.shrink();
+        return LayoutBuilder(builder: (context, constraints) {
+          const gap = 6.0;
+          final tileWidth = (constraints.maxWidth - gap * (items.length - 1)) / items.length;
+          final stacked = tileWidth < 108;
+          return Row(children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: gap),
+              Expanded(
+                child: _CountdownPill(
+                  spec: items[i],
+                  stacked: stacked,
+                  onTap: () => showRepoSettings(context, controller, repo),
+                ),
+              ),
+            ],
+          ]);
+        });
+      },
+    );
+  }
+}
+
+class _CountdownSpec {
+  const _CountdownSpec({
+    required this.icon,
+    required this.tone,
+    required this.accent,
+    required this.label,
+    required this.timeText,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final GlassTone tone;
+  final Color accent;
+  final String label;
+  final String timeText;
+  final String tooltip;
+}
+
+class _CountdownPill extends StatelessWidget {
+  const _CountdownPill({required this.spec, required this.stacked, required this.onTap});
+
+  final _CountdownSpec spec;
+  final bool stacked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final timerStyle = Txt.strong.copyWith(
+      fontSize: 11.5,
+      fontWeight: FontWeight.w600,
+      color: spec.tone.foreground,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final labelStyle = Txt.body.copyWith(
+      fontSize: stacked ? 10.5 : 11.2,
+      fontWeight: FontWeight.w500,
+      color: Palette.inkSoft,
+    );
+    return Tooltip(
+      message: spec.tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: stacked ? 36 : 27,
+            padding: EdgeInsets.symmetric(horizontal: stacked ? 7 : 8, vertical: stacked ? 3 : 0),
+            decoration: BoxDecoration(
+              color: spec.tone.top.withValues(alpha: 0.28),
+              borderRadius: BorderRadius.circular(8.5),
+              border: Border.all(color: spec.tone.rim.withValues(alpha: 0.55), width: 0.8),
+            ),
+            child: stacked
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Icon(spec.icon, size: 11.5, color: spec.accent),
+                        const SizedBox(width: 3.5),
+                        Expanded(child: Text(spec.label, style: labelStyle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      ]),
+                      Text(spec.timeText, style: timerStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  )
+                : Row(children: [
+                    Icon(spec.icon, size: 13, color: spec.accent),
+                    const SizedBox(width: 5),
+                    Expanded(child: Text(spec.label, style: labelStyle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 5),
+                    Text(spec.timeText, style: timerStyle),
+                  ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AutomationBadge extends StatelessWidget {
+  const _AutomationBadge({required this.controller, required this.repo});
+
+  final WatcherController controller;
+  final RepoState repo;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final auto = controller.repoAutomation(repo);
+    if (auto == null) return const SizedBox.shrink();
+    final parts = <String>[
+      if (auto.autoCommit && auto.autoPush)
+        auto.syncIntervalMinutes == auto.pushIntervalMinutes
+            ? l.cardAutoCommitPushShort(auto.syncIntervalMinutes)
+            : l.cardAutoCommitPushDiffShort(auto.syncIntervalMinutes, auto.pushIntervalMinutes)
+      else if (auto.autoCommit)
+        l.cardAutoCommitShort(auto.syncIntervalMinutes)
+      else if (auto.autoPush)
+        l.cardAutoPushShort(auto.pushIntervalMinutes),
+      if (auto.hasSkillWatch)
+        l.cardAutoSkillsShort(
+          auto.skills.where((s) => s.enabled && s.skill.trim().isNotEmpty).length,
+          auto.skillIntervalMinutes,
+        ),
+    ];
+    return GlassButton(
+      onPressed: () => showRepoSettings(context, controller, repo),
+      icon: auto.hasSkillWatch ? Icons.bolt_rounded : Icons.sync_rounded,
+      tone: auto.hasSkillWatch ? GlassTone.violet : GlassTone.blue,
+      height: 28,
+      radius: 8.5,
+      tooltip: l.cardAutoBadgeTooltip(parts.join(' · ')),
+    );
+  }
 }

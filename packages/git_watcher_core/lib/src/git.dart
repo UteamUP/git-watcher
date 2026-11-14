@@ -27,7 +27,7 @@ class GitResult {
 }
 
 class Git {
-  Git(this.env) : executable = env.which('git') ?? '/usr/bin/git';
+  Git(this.env) : executable = env.which('git') ?? (Platform.isWindows ? 'git.exe' : '/usr/bin/git');
 
   final ProcessEnv env;
   final String executable;

@@ -91,19 +91,16 @@ class AiHelper extends ChangeNotifier {
       if (status.operation != RepoOperation.none) {
         throw GitException(watcher.l10n.cardOperationInProgress(operationLabel(status.operation)));
       }
-      var message = repo.message.text.trim();
-      if (message.isEmpty) {
-        await _step(repo, Icons.edit_note_rounded, watcher.l10n.topHelperWritingMessage, () async {
-          message = await watcher.generateMessage(repo, subjectOnly: false);
-        });
-      }
+      var message = '';
+      await _step(repo, Icons.edit_note_rounded, watcher.l10n.topHelperWritingMessage, () async {
+        message = await watcher.generateMessage(repo, subjectOnly: false);
+      });
       await _step(
         repo,
         Icons.check_rounded,
         watcher.l10n.topHelperCommitFiles(status.files.length),
         () => watcher.service.commit(repo.path, status.files, message, operation: status.operation),
       );
-      repo.message.clear();
       ok = true;
     } on Object catch (error) {
       _add(HelperStep(repo.name, Icons.error_outline_rounded, firstLine(watcher.l10n, error), HelperStepState.failed));
@@ -130,15 +127,12 @@ class AiHelper extends ChangeNotifier {
       }
 
       if (status.files.isNotEmpty) {
-        var message = repo.message.text.trim();
-        if (message.isEmpty) {
-          await _step(repo, Icons.edit_note_rounded, l.topHelperWritingMessage, () async {
-            message = await watcher.generateMessage(repo, subjectOnly: false);
-          });
-        }
+        var message = '';
+        await _step(repo, Icons.edit_note_rounded, l.topHelperWritingMessage, () async {
+          message = await watcher.generateMessage(repo, subjectOnly: false);
+        });
         await _step(repo, Icons.check_rounded, l.topHelperCommitFiles(status.files.length),
             () => service.commit(repo.path, status.files, message, operation: status.operation));
-        repo.message.clear();
       }
 
       await _step(repo, Icons.cloud_download_rounded, 'Fetch', () => service.fetch(repo.path));
@@ -295,6 +289,69 @@ End with one short sentence that says what you did.''');
       notifyListeners();
     }
     return (step, null);
+  }
+
+  /// Runs a list of configured [skills] sequentially inside [repo], streaming progress into the helper panel.
+  Future<bool> runSkills(RepoState repo, List<SkillStepConfig> skills) async {
+    final active = skills.where((s) => s.enabled && s.skill.trim().isNotEmpty).toList();
+    if (running || active.isEmpty) return false;
+    running = true;
+    visible = true;
+    steps.clear();
+    final l = watcher.l10n;
+    summary = l.topHelperRunningSkillsIn(active.length, repo.name);
+    notifyListeners();
+
+    var doneCount = 0;
+    var allSucceeded = true;
+    try {
+      for (final item in active) {
+        final skillName = item.skill.trim();
+        repo.busy = l.appBusyRunningSkill(skillName);
+        watcher.notify();
+        final modelSuffix = item.model.trim().isEmpty ? '' : ' · ${item.model.trim()}';
+        final label = l.topHelperSkillStep(skillName, agentLabel(l, item.agent), modelSuffix);
+        final step = _add(HelperStep(repo.name, Icons.bolt_rounded, label));
+        var stepOk = false;
+        try {
+          await for (final event in watcher.ai.runSkill(
+            agent: item.agent,
+            repo: repo.path,
+            skill: skillName,
+            model: item.model,
+            root: watcher.config.root,
+          )) {
+            final text = agentEventText(l, event);
+            step.text = event.done && text.isEmpty ? label : '$skillName · $text';
+            if (event.done) {
+              stepOk = !event.failed;
+              step.state = event.failed ? HelperStepState.failed : HelperStepState.done;
+            }
+            notifyListeners();
+            if (event.done) break;
+          }
+        } on Object catch (error) {
+          step
+            ..text = '$skillName · ${l.topAgentCouldNotStart(firstLine(l, error))}'
+            ..state = HelperStepState.failed;
+          notifyListeners();
+        }
+        await watcher.refreshRepo(repo.path);
+        if (stepOk) {
+          doneCount++;
+        } else {
+          allSucceeded = false;
+          break;
+        }
+      }
+      return allSucceeded;
+    } finally {
+      repo.busy = null;
+      running = false;
+      summary = l.topHelperSkillsDone(doneCount, active.length, repo.name);
+      await watcher.refreshRepo(repo.path);
+      notifyListeners();
+    }
   }
 
   HelperStep _add(HelperStep step) {

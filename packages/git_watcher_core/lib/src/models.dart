@@ -1,3 +1,5 @@
+import 'dart:io';
+
 enum ChangeKind { modified, added, deleted, renamed, untracked, conflicted }
 
 extension ChangeKindLetter on ChangeKind {
@@ -13,12 +15,26 @@ extension ChangeKindLetter on ChangeKind {
 
 enum RepoOperation { none, rebase, merge, cherryPick }
 
-String repoFolderName(String path) => path.split('/').where((p) => p.isNotEmpty).last;
+String repoFolderName(String path) {
+  final parts = path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).toList();
+  return parts.isEmpty ? path : parts.last;
+}
 
 /// "UteamUP_Backend" reads as "Backend" on a card; other folders keep their name.
 String repoDisplayName(String path) {
   final name = repoFolderName(path);
   return name.startsWith('UteamUP_') ? name.substring('UteamUP_'.length) : name;
+}
+
+/// Normalizes a local filesystem path to the OS's native separator (`\` on Windows, `/` on macOS).
+String formatDiskPath(String path, {bool? windows}) {
+  final win = windows ?? Platform.isWindows;
+  final sep = win ? r'\' : '/';
+  final normalized = path.replaceAll(RegExp(r'[/\\]+'), sep);
+  if (normalized.length > 1 && normalized.endsWith(sep) && !(win && RegExp(r'^[A-Za-z]:\\$').hasMatch(normalized))) {
+    return normalized.substring(0, normalized.length - 1);
+  }
+  return normalized;
 }
 
 class FileChange {
@@ -36,10 +52,10 @@ class FileChange {
   final bool staged;
   final bool unstaged;
 
-  String get fileName => path.split('/').last;
+  String get fileName => path.split(RegExp(r'[/\\]')).last;
 
   String get directory {
-    final slash = path.lastIndexOf('/');
+    final slash = path.lastIndexOf(RegExp(r'[/\\]'));
     return slash < 0 ? '' : path.substring(0, slash);
   }
 
@@ -63,18 +79,22 @@ class RepoStatus {
     required this.behind,
     required this.hasCommits,
     required this.files,
+    this.remoteUrl,
     this.operation = RepoOperation.none,
+    this.headHash,
     this.lastCommitAt,
     this.lastCommitSubject,
   });
 
   final String branch;
   final String? upstream;
+  final String? remoteUrl;
   final int ahead;
   final int behind;
   final bool hasCommits;
   final List<FileChange> files;
   final RepoOperation operation;
+  final String? headHash;
   final DateTime? lastCommitAt;
   final String? lastCommitSubject;
 
@@ -90,12 +110,14 @@ class RepoStatus {
   Map<String, Object?> toJson({bool includeFiles = true}) => {
         'branch': branch,
         'upstream': upstream,
+        if (remoteUrl != null) 'remoteUrl': remoteUrl,
         'ahead': ahead,
         'behind': behind,
         'hasCommits': hasCommits,
         'operation': operation.name,
         'changedFiles': files.length,
         'counts': {for (final e in counts.entries) e.key.name: e.value},
+        if (headHash != null) 'headHash': headHash,
         'lastCommitAt': lastCommitAt?.toIso8601String(),
         'lastCommitSubject': lastCommitSubject,
         if (includeFiles) 'files': [for (final f in files) f.toJson()],

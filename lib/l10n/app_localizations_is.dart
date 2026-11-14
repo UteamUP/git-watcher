@@ -161,7 +161,7 @@ class AppLocalizationsIs extends AppLocalizations {
 
   @override
   String aiKeychainFailed(String detail) {
-    return 'Gat ekki vistað lykilinn í Keychain: $detail';
+    return 'Gat ekki vistað API lykilinn: $detail';
   }
 
   @override
@@ -499,7 +499,7 @@ class AppLocalizationsIs extends AppLocalizations {
 
   @override
   String get settingsCommitAiSubtitle =>
-      'Notað af AI takkanum á kortunum, AI skilaboðum og AI helper.';
+      'Notað af Commit, Commit allt og AI helper.';
 
   @override
   String get settingsTest => 'Prófa';
@@ -577,7 +577,7 @@ class AppLocalizationsIs extends AppLocalizations {
 
   @override
   String get settingsKeySavedHint =>
-      'Vistaður í Keychain · skrifaðu nýjan til að skipta';
+      'Vistaður á öruggan hátt · skrifaðu nýjan til að skipta';
 
   @override
   String get settingsKeyPasteHint => 'Límdu lykilinn hér';
@@ -586,10 +586,16 @@ class AppLocalizationsIs extends AppLocalizations {
   String get settingsSave => 'Vista';
 
   @override
-  String get settingsKeySaved => 'Lykill vistaður í macOS Keychain';
+  String get settingsKeySaved => 'API lykill vistaður á öruggan hátt';
 
   @override
   String get settingsDelete => 'Eyða';
+
+  @override
+  String get settingsChooseModel => 'Velja módel';
+
+  @override
+  String get settingsRefreshModels => 'Sækja módel frá API';
 
   @override
   String appCiNotification(String repo, String status) {
@@ -950,4 +956,215 @@ class AppLocalizationsIs extends AppLocalizations {
   String mbPushed(String repo) {
     return '$repo: pushað';
   }
+
+  @override
+  String get copyPathsTooltip => 'Afrita slóð á diski eða Git slóð';
+
+  @override
+  String get copyDiskPath => 'Afrita slóð á diski';
+
+  @override
+  String get copyGitUrl => 'Afrita Git slóð';
+
+  @override
+  String get cardNoRemote => 'Ekkert Git remote';
+
+  @override
+  String copiedToClipboard(String label, String value) {
+    return '$label afrituð: $value';
+  }
+
+  @override
+  String get topCommitAllTooltip =>
+      'AI skrifar commit skilaboð og commitar öll repo með breytingar';
+
+  @override
+  String get cardCommitTooltip => 'AI skrifar commit skilaboð og commitar';
+
+  @override
+  String get appBusyCommitting => 'AI commit…';
+
+  @override
+  String cardAiCommitting(String provider, String speed) {
+    return '$provider skrifar skilaboð og commitar · $speed';
+  }
+
+  @override
+  String get cardMenuRepoSettings => 'Stillingar repo…';
+
+  @override
+  String cardAutoBadgeTooltip(String details) {
+    return 'Sjálfvirkni virk: $details';
+  }
+
+  @override
+  String cardAutoCommitShort(int minutes) {
+    return 'Sjálfvirkt commit (${minutes}m)';
+  }
+
+  @override
+  String cardAutoPushShort(int minutes) {
+    return 'Sjálfvirkt push (${minutes}m)';
+  }
+
+  @override
+  String cardAutoCommitPushShort(int minutes) {
+    return 'Sjálfvirkt commit & push (${minutes}m)';
+  }
+
+  @override
+  String cardAutoSkillsShort(int count, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skills (${minutes}m)',
+      one: '$count skill (${minutes}m)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repoSettingsTitle(String repo) {
+    return 'Stillingar repo · $repo';
+  }
+
+  @override
+  String get repoAutoSyncTitle => 'Sjálfvirkt commit og push';
+
+  @override
+  String get repoAutoSyncSubtitle =>
+      'Keyrir reglulega þegar repoið er ekki upptekið. Hægt er að velja commit, push eða bæði í senn.';
+
+  @override
+  String get repoAutoCommit => 'Sjálfvirkt commit';
+
+  @override
+  String get repoAutoCommitHint =>
+      'AI skrifar commit skilaboð og commitar breytingum';
+
+  @override
+  String get repoAutoPush => 'Sjálfvirkt push';
+
+  @override
+  String get repoAutoPushHint =>
+      'Sækir með rebase ef þarf og pushar commitum sem bíða';
+
+  @override
+  String get repoIntervalMinutes => 'Tímabil (mín)';
+
+  @override
+  String get repoMinutesSuffix => 'mín';
+
+  @override
+  String get repoRunSyncNow => 'Keyra sync núna';
+
+  @override
+  String get repoSkillsTitle => 'Keyra skills við ný commit';
+
+  @override
+  String get repoSkillsSubtitle =>
+      'Athugar reglulega hvort ný commit hafi bæst við og keyrir skills í röð á völdum agent og módeli.';
+
+  @override
+  String get repoSkillsWatchToggle => 'Vakta ný commit og keyra skills';
+
+  @override
+  String get repoSkillsCheckInterval => 'Athuga á (mín)';
+
+  @override
+  String get repoSkillsRunNow => 'Keyra skills núna';
+
+  @override
+  String get repoSkillsEmpty =>
+      'Engin skills á lista ennþá. Veldu uppsett skill úr listanum eða skrifaðu nafn að neðan.';
+
+  @override
+  String get repoSkillNameHint => 'Nafn á skilli (t.d. uteamup-mobilerelease)';
+
+  @override
+  String get repoSkillPickInstalled => 'Uppsett skills';
+
+  @override
+  String get repoSkillAdd => 'Bæta við';
+
+  @override
+  String get repoSkillModelDefault => 'Sjálfgefið módel';
+
+  @override
+  String get repoSkillModelHint => 'Módel (valfrjálst)';
+
+  @override
+  String get repoSkillMoveUp => 'Færa upp';
+
+  @override
+  String get repoSkillMoveDown => 'Færa niður';
+
+  @override
+  String get repoSkillRemove => 'Fjarlægja skill';
+
+  @override
+  String repoLastCheckedCommit(String hash) {
+    return 'Viðmiðunar-commit: $hash';
+  }
+
+  @override
+  String get appBusyAutoSync => 'Sjálfvirkt sync…';
+
+  @override
+  String appBusyRunningSkill(String skill) {
+    return 'Skill: $skill…';
+  }
+
+  @override
+  String topHelperRunningSkillsIn(int count, String repo) {
+    return 'keyri $count skills í $repo…';
+  }
+
+  @override
+  String topHelperSkillsDone(int done, int total, String repo) {
+    return 'Búið · $done af $total skills kláruð í $repo';
+  }
+
+  @override
+  String topHelperSkillStep(String skill, String agent, String model) {
+    return 'Skill $skill ($agent$model)';
+  }
+
+  @override
+  String cardAutoCommitPushDiffShort(int commitMinutes, int pushMinutes) {
+    return 'Sjálfvirkt commit (${commitMinutes}m) & push (${pushMinutes}m)';
+  }
+
+  @override
+  String get cardCountdownCommit => 'Commit';
+
+  @override
+  String get cardCountdownPush => 'Push';
+
+  @override
+  String get cardCountdownSkill => 'Skill';
+
+  @override
+  String get cardCountdownRunning => 'núna…';
+
+  @override
+  String cardCountdownCommitTooltip(String time, int minutes) {
+    return 'Næsta sjálfvirka commit eftir $time (á ${minutes}m fresti) · smella til að breyta';
+  }
+
+  @override
+  String cardCountdownPushTooltip(String time, int minutes) {
+    return 'Næsta sjálfvirka push eftir $time (á ${minutes}m fresti) · smella til að breyta';
+  }
+
+  @override
+  String cardCountdownSkillTooltip(String time, int minutes) {
+    return 'Næsta skill-athugun eftir $time (á ${minutes}m fresti) · smella til að breyta';
+  }
+
+  @override
+  String get repoCommitIntervalMinutes => 'Commit á (mín)';
+
+  @override
+  String get repoPushIntervalMinutes => 'Push á (mín)';
 }

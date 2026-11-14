@@ -10,10 +10,44 @@ class ProcessEnv {
 
   final Map<String, String> environment;
 
-  String get home => environment['HOME'] ?? Platform.environment['HOME'] ?? '/';
+  String get home =>
+      environment['HOME'] ??
+      environment['USERPROFILE'] ??
+      Platform.environment['HOME'] ??
+      Platform.environment['USERPROFILE'] ??
+      (Platform.isWindows ? r'C:\' : '/');
 
   static Future<ProcessEnv> resolve() async {
     final env = Map<String, String>.of(Platform.environment);
+    if (Platform.isWindows) {
+      final home = env['USERPROFILE'] ?? env['HOME'] ?? '';
+      final localAppData = env['LOCALAPPDATA'] ?? '';
+      final programFiles = env['ProgramFiles'] ?? r'C:\Program Files';
+      final appData = env['APPDATA'] ?? '';
+      final existingPath = env.entries
+          .where((e) => e.key.toUpperCase() == 'PATH')
+          .map((e) => e.value)
+          .join(';');
+      env.removeWhere((k, _) => k.toUpperCase() == 'PATH');
+      final dirs = <String>[
+        ...existingPath.split(';'),
+        if (home.isNotEmpty) '$home\\.local\\bin',
+        if (home.isNotEmpty) '$home\\go\\bin',
+        if (localAppData.isNotEmpty) '$localAppData\\Microsoft\\WinGet\\Links',
+        if (appData.isNotEmpty) '$appData\\npm',
+        '$programFiles\\nodejs',
+        '$programFiles\\Go\\bin',
+        '$programFiles\\GitHub CLI',
+        if (localAppData.isNotEmpty) '$localAppData\\Programs\\Git\\cmd',
+        '$programFiles\\Git\\cmd',
+      ];
+      env['PATH'] = dirs.where((d) => d.isNotEmpty).toSet().join(';');
+      env['GIT_TERMINAL_PROMPT'] = '0';
+      env['GIT_OPTIONAL_LOCKS'] = '0';
+      env['GIT_EDITOR'] = 'true';
+      env.putIfAbsent('LANG', () => 'en_US.UTF-8');
+      return ProcessEnv(env);
+    }
     final home = env['HOME'] ?? '';
     final shellPath = await _loginShellPath(env['SHELL'] ?? '/bin/zsh');
     final dirs = <String>[
@@ -52,10 +86,15 @@ class ProcessEnv {
   }
 
   String? which(String executable) {
-    for (final dir in (environment['PATH'] ?? '').split(':')) {
+    final sep = Platform.isWindows ? ';' : ':';
+    final pathValue = environment['PATH'] ?? environment['Path'] ?? '';
+    final suffixes = Platform.isWindows ? const ['', '.exe', '.cmd', '.bat'] : const [''];
+    for (final dir in pathValue.split(sep)) {
       if (dir.isEmpty) continue;
-      final candidate = '$dir/$executable';
-      if (File(candidate).existsSync()) return candidate;
+      for (final suffix in suffixes) {
+        final candidate = '$dir${Platform.pathSeparator}$executable$suffix';
+        if (File(candidate).existsSync()) return candidate;
+      }
     }
     return null;
   }

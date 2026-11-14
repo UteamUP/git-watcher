@@ -30,7 +30,9 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   final _model = TextEditingController();
   final _baseUrl = TextEditingController();
   final _key = TextEditingController();
+  final _fetchedModels = <AiProvider, List<String>>{};
   bool _hasKey = false;
+  bool _loadingModels = false;
   bool _testing = false;
   Object? _testResult;
   bool _testFailed = false;
@@ -60,8 +62,13 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     _baseUrl.text = settings.baseUrl;
     _key.clear();
     _testResult = null;
-    _hasKey = provider.needsKey && await KeyStore.read(provider) != null;
-    if (mounted) setState(() {});
+    _testFailed = false;
+    final hasKey = provider.needsKey && await KeyStore.read(provider) != null;
+    if (!mounted || controller.aiProvider != provider) return;
+    setState(() => _hasKey = hasKey);
+    if (hasKey && !_fetchedModels.containsKey(provider)) {
+      unawaited(_fetchModels(provider, silent: true));
+    }
   }
 
   void _choose(AiProvider provider) {
@@ -69,26 +76,97 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     _load(provider);
   }
 
-  Future<void> _saveKey(AiProvider provider) async {
+  void _selectModel(AiProvider provider, String model) {
+    _model.text = model;
+    controller.setModel(provider, model);
+    setState(() {});
+  }
+
+  List<String> _allModels(AiProvider provider) {
+    final fetched = _fetchedModels[provider] ?? const <String>[];
+    final ordered = fetched.isNotEmpty && fetched.length <= 8
+        ? [...fetched, ...provider.suggestedModels]
+        : [...provider.suggestedModels, ...fetched];
+    final seen = <String>{};
+    return [for (final m in ordered) if (m.isNotEmpty && seen.add(m)) m];
+  }
+
+  List<String> _chipModels(AiProvider provider) {
+    final all = _allModels(provider);
+    final chips = all.take(8).toList();
+    final active = _model.text.trim();
+    if (active.isNotEmpty && !chips.contains(active) && all.contains(active)) {
+      chips.insert(0, active);
+    }
+    return chips;
+  }
+
+  Future<void> _fetchModels(AiProvider provider, {bool silent = false}) async {
+    if (!provider.needsKey) return;
+    controller.setBaseUrl(provider, _baseUrl.text);
+    if (mounted) setState(() => _loadingModels = true);
+    try {
+      final models = await controller.ai.listModels(controller.config.aiSettings(provider));
+      if (!mounted) return;
+      setState(() {
+        if (models.isNotEmpty) {
+          _fetchedModels[provider] = models;
+          if (_model.text.trim().isEmpty) {
+            _model.text = models.first;
+            controller.setModel(provider, models.first);
+          }
+        }
+      });
+    } on Object catch (error) {
+      if (!silent && mounted) {
+        setState(() {
+          _testResult = error;
+          _testFailed = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingModels = false);
+    }
+  }
+
+  Future<bool> _saveKey(AiProvider provider) async {
     try {
       await KeyStore.write(provider, _key.text);
       _key.clear();
-      setState(() => _hasKey = true);
+      if (mounted) {
+        setState(() {
+          _hasKey = true;
+          _testResult = null;
+          _testFailed = false;
+        });
+      }
+      unawaited(_fetchModels(provider, silent: true));
+      return true;
     } on Object catch (error) {
-      setState(() {
-        _testResult = error;
-        _testFailed = true;
-      });
+      if (mounted) {
+        setState(() {
+          _testResult = error;
+          _testFailed = true;
+        });
+      }
+      return false;
     }
   }
 
   Future<void> _deleteKey(AiProvider provider) async {
     await KeyStore.delete(provider);
-    setState(() => _hasKey = false);
+    setState(() {
+      _hasKey = false;
+      _fetchedModels.remove(provider);
+    });
   }
 
   Future<void> _test(AiProvider provider) async {
     if (provider.needsKey) {
+      if (_key.text.trim().isNotEmpty) {
+        final saved = await _saveKey(provider);
+        if (!saved) return;
+      }
       controller
         ..setModel(provider, _model.text)
         ..setBaseUrl(provider, _baseUrl.text);
@@ -143,7 +221,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                     const SizedBox(width: 10),
                     Text(l.settingsTitle, style: Txt.title.copyWith(fontSize: 18)),
                     const Spacer(),
-                    Text('GIT Watcher $appVersion · build $appBuild', style: Txt.muted),
+                    Text('UteamUP GitWatcher $appVersion · build $appBuild', style: Txt.muted),
                     const SizedBox(width: 12),
                     GlassButton(onPressed: () => Navigator.pop(context), icon: Icons.close_rounded, height: 30, radius: 9, tooltip: l.close),
                   ]),
@@ -292,74 +370,122 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         GlassButton(onPressed: controller.checkAi, icon: Icons.refresh_rounded, height: 30, radius: 9, tooltip: context.l10n.settingsCheckAgain),
       ]);
 
-  Widget _apiFields(AiProvider provider) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _Labeled(
-          label: context.l10n.settingsModel,
-          child: GlassField(
-            controller: _model,
-            hint: provider.defaultModel.isEmpty ? context.l10n.settingsModelExample('anthropic/claude-haiku-5-5') : provider.defaultModel,
-            icon: Icons.memory_rounded,
-            onChanged: (value) => controller.setModel(provider, value),
-          ),
+  Widget _apiFields(AiProvider provider) {
+    final l = context.l10n;
+    final allModels = _allModels(provider);
+    final chipModels = _chipModels(provider);
+    final activeModel = _model.text.trim();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _Labeled(
+        label: l.settingsModel,
+        child: GlassField(
+          controller: _model,
+          hint: provider.defaultModel.isEmpty ? l.settingsModelExample('minimax/minimax-m3') : provider.defaultModel,
+          icon: Icons.memory_rounded,
+          onChanged: (value) {
+            controller.setModel(provider, value);
+            setState(() {});
+          },
+          suffix: (allModels.isEmpty && !_hasKey)
+              ? null
+              : Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (_hasKey)
+                    GlassButton(
+                      onPressed: _loadingModels ? null : () => _fetchModels(provider),
+                      busy: _loadingModels,
+                      icon: Icons.sync_rounded,
+                      height: 28,
+                      radius: 8,
+                      tooltip: l.settingsRefreshModels,
+                    ),
+                  if (_hasKey && allModels.isNotEmpty) const SizedBox(width: 4),
+                  if (allModels.isNotEmpty)
+                    MenuAnchor(
+                      style: glassMenuStyle.copyWith(
+                        maximumSize: const WidgetStatePropertyAll(Size(420, 320)),
+                      ),
+                      alignmentOffset: const Offset(-220, 6),
+                      menuChildren: [
+                        for (final model in allModels)
+                          MenuItemButton(
+                            style: menuItemStyle,
+                            leadingIcon: Icon(
+                              model == activeModel ? Icons.check_rounded : Icons.memory_rounded,
+                              color: model == activeModel ? Palette.blue : Palette.inkSoft,
+                            ),
+                            onPressed: () => _selectModel(provider, model),
+                            child: Text(
+                              model,
+                              style: model == activeModel ? Txt.strong.copyWith(fontSize: 13, color: Palette.blue) : null,
+                            ),
+                          ),
+                      ],
+                      builder: (context, menu, _) => GlassButton(
+                        onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+                        icon: Icons.expand_more_rounded,
+                        height: 28,
+                        radius: 8,
+                        tooltip: l.settingsChooseModel,
+                      ),
+                    ),
+                ]),
         ),
-        if (provider == AiProvider.anthropic)
-          Padding(
-            padding: const EdgeInsets.only(left: 96, top: 4),
-            child: Wrap(spacing: 6, children: [
-              for (final model in const ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])
-                GlassButton(
-                  onPressed: () {
-                    _model.text = model;
-                    controller.setModel(provider, model);
-                    setState(() {});
-                  },
-                  label: model,
-                  height: 26,
-                  radius: 8,
-                  tone: _model.text == model ? GlassTone.blue : GlassTone.neutral,
-                ),
-            ]),
-          ),
-        const SizedBox(height: 8),
-        _Labeled(
-          label: context.l10n.settingsBaseUrl,
-          child: GlassField(
-            controller: _baseUrl,
-            hint: provider.defaultBaseUrl,
-            icon: Icons.link_rounded,
-            onChanged: (value) => controller.setBaseUrl(provider, value),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _Labeled(
-          label: context.l10n.settingsApiKey,
-          child: GlassField(
-            controller: _key,
-            hint: _hasKey ? context.l10n.settingsKeySavedHint : context.l10n.settingsKeyPasteHint,
-            icon: Icons.key_rounded,
-            obscure: true,
-            onSubmitted: (_) => _saveKey(provider),
-            suffix: GlassButton(onPressed: () => _saveKey(provider), label: context.l10n.settingsSave, height: 30, radius: 8, tone: GlassTone.blue),
-          ),
-        ),
-        if (_hasKey)
-          Padding(
-            padding: const EdgeInsets.only(left: 96, top: 6),
-            child: Row(children: [
-              const Icon(Icons.lock_rounded, size: 15, color: Palette.green),
-              const SizedBox(width: 6),
-              Text(context.l10n.settingsKeySaved, style: Txt.muted),
-              const Spacer(),
+      ),
+      if (chipModels.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(left: 96, top: 6),
+          child: Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final model in chipModels)
               GlassButton(
-                onPressed: () => _deleteKey(provider),
-                icon: Icons.delete_outline_rounded,
-                label: context.l10n.settingsDelete,
-                height: 28,
+                onPressed: () => _selectModel(provider, model),
+                label: model,
+                height: 26,
                 radius: 8,
+                tone: activeModel == model ? GlassTone.blue : GlassTone.neutral,
               ),
-            ]),
-          ),
-      ]);
+          ]),
+        ),
+      const SizedBox(height: 8),
+      _Labeled(
+        label: l.settingsBaseUrl,
+        child: GlassField(
+          controller: _baseUrl,
+          hint: provider.defaultBaseUrl,
+          icon: Icons.link_rounded,
+          onChanged: (value) => controller.setBaseUrl(provider, value),
+        ),
+      ),
+      const SizedBox(height: 8),
+      _Labeled(
+        label: l.settingsApiKey,
+        child: GlassField(
+          controller: _key,
+          hint: _hasKey ? l.settingsKeySavedHint : l.settingsKeyPasteHint,
+          icon: Icons.key_rounded,
+          obscure: true,
+          onSubmitted: (_) => _saveKey(provider),
+          suffix: GlassButton(onPressed: () => _saveKey(provider), label: l.settingsSave, height: 30, radius: 8, tone: GlassTone.blue),
+        ),
+      ),
+      if (_hasKey)
+        Padding(
+          padding: const EdgeInsets.only(left: 96, top: 6),
+          child: Row(children: [
+            const Icon(Icons.lock_rounded, size: 15, color: Palette.green),
+            const SizedBox(width: 6),
+            Text(l.settingsKeySaved, style: Txt.muted),
+            const Spacer(),
+            GlassButton(
+              onPressed: () => _deleteKey(provider),
+              icon: Icons.delete_outline_rounded,
+              label: l.settingsDelete,
+              height: 28,
+              radius: 8,
+            ),
+          ]),
+        ),
+    ]);
+  }
 }
 
 class _Labeled extends StatelessWidget {

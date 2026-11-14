@@ -323,7 +323,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiKeychainFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not save the key in the Keychain: {detail}'**
+  /// **'Could not save the API key: {detail}'**
   String aiKeychainFailed(String detail);
 
   /// No description provided for @aiEmptyReply.
@@ -335,7 +335,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiCliMissing.
   ///
   /// In en, this message translates to:
-  /// **'{tool} was not found on this Mac'**
+  /// **'{tool} was not found on this computer'**
   String aiCliMissing(String tool);
 
   /// No description provided for @aiClaudeSignedOut.
@@ -881,7 +881,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsCommitAiSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Used by the AI button on each card, AI messages and the AI helper.'**
+  /// **'Used by Commit, Commit all and the AI helper.'**
   String get settingsCommitAiSubtitle;
 
   /// No description provided for @settingsTest.
@@ -1001,7 +1001,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsKeySavedHint.
   ///
   /// In en, this message translates to:
-  /// **'Saved in the Keychain · type a new key to replace it'**
+  /// **'Saved securely · type a new key to replace it'**
   String get settingsKeySavedHint;
 
   /// No description provided for @settingsKeyPasteHint.
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsKeySaved.
   ///
   /// In en, this message translates to:
-  /// **'Key saved in the macOS Keychain'**
+  /// **'API key saved securely'**
   String get settingsKeySaved;
 
   /// No description provided for @settingsDelete.
@@ -1027,6 +1027,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get settingsDelete;
+
+  /// No description provided for @settingsChooseModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose model'**
+  String get settingsChooseModel;
+
+  /// No description provided for @settingsRefreshModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch models from API'**
+  String get settingsRefreshModels;
 
   /// No description provided for @appCiNotification.
   ///
@@ -1537,6 +1549,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{repo}: pushed'**
   String mbPushed(String repo);
+
+  /// No description provided for @copyPathsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy disk path or Git URL'**
+  String get copyPathsTooltip;
+
+  /// No description provided for @copyDiskPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy disk path'**
+  String get copyDiskPath;
+
+  /// No description provided for @copyGitUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Git URL'**
+  String get copyGitUrl;
+
+  /// No description provided for @cardNoRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'No Git remote'**
+  String get cardNoRemote;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} copied: {value}'**
+  String copiedToClipboard(String label, String value);
+
+  /// No description provided for @topCommitAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI writes commit messages and commits every repo with changes'**
+  String get topCommitAllTooltip;
+
+  /// No description provided for @cardCommitTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI writes a commit message and commits'**
+  String get cardCommitTooltip;
+
+  /// No description provided for @appBusyCommitting.
+  ///
+  /// In en, this message translates to:
+  /// **'AI commit…'**
+  String get appBusyCommitting;
+
+  /// No description provided for @cardAiCommitting.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} is writing a message and committing · {speed}'**
+  String cardAiCommitting(String provider, String speed);
+
+  /// No description provided for @cardMenuRepoSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Repo settings…'**
+  String get cardMenuRepoSettings;
+
+  /// No description provided for @cardAutoBadgeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Automation active: {details}'**
+  String cardAutoBadgeTooltip(String details);
+
+  /// No description provided for @cardAutoCommitShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-commit ({minutes}m)'**
+  String cardAutoCommitShort(int minutes);
+
+  /// No description provided for @cardAutoPushShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-push ({minutes}m)'**
+  String cardAutoPushShort(int minutes);
+
+  /// No description provided for @cardAutoCommitPushShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto commit & push ({minutes}m)'**
+  String cardAutoCommitPushShort(int minutes);
+
+  /// No description provided for @cardAutoSkillsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 skill ({minutes}m)} other{{count} skills ({minutes}m)}}'**
+  String cardAutoSkillsShort(int count, int minutes);
+
+  /// No description provided for @repoSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Repo settings · {repo}'**
+  String repoSettingsTitle(String repo);
+
+  /// No description provided for @repoAutoSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic commit and push'**
+  String get repoAutoSyncTitle;
+
+  /// No description provided for @repoAutoSyncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs periodically when the repository is idle. Enable commit, push, or both independently.'**
+  String get repoAutoSyncSubtitle;
+
+  /// No description provided for @repoAutoCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'Commit automatically'**
+  String get repoAutoCommit;
+
+  /// No description provided for @repoAutoCommitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'AI writes a commit message and commits working changes'**
+  String get repoAutoCommitHint;
+
+  /// No description provided for @repoAutoPush.
+  ///
+  /// In en, this message translates to:
+  /// **'Push automatically'**
+  String get repoAutoPush;
+
+  /// No description provided for @repoAutoPushHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetches, rebases if behind, and pushes waiting commits'**
+  String get repoAutoPushHint;
+
+  /// No description provided for @repoIntervalMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every (minutes)'**
+  String get repoIntervalMinutes;
+
+  /// No description provided for @repoMinutesSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get repoMinutesSuffix;
+
+  /// No description provided for @repoRunSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Run sync now'**
+  String get repoRunSyncNow;
+
+  /// No description provided for @repoSkillsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run skills on new commits'**
+  String get repoSkillsTitle;
+
+  /// No description provided for @repoSkillsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Periodically checks for new commits and runs the listed skills in order using your chosen agent and model.'**
+  String get repoSkillsSubtitle;
+
+  /// No description provided for @repoSkillsWatchToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check commits & run skills'**
+  String get repoSkillsWatchToggle;
+
+  /// No description provided for @repoSkillsCheckInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Check every (minutes)'**
+  String get repoSkillsCheckInterval;
+
+  /// No description provided for @repoSkillsRunNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Run skills now'**
+  String get repoSkillsRunNow;
+
+  /// No description provided for @repoSkillsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No skills in the list yet. Pick an installed skill or type a skill name below.'**
+  String get repoSkillsEmpty;
+
+  /// No description provided for @repoSkillNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Skill name (e.g. uteamup-mobilerelease)'**
+  String get repoSkillNameHint;
+
+  /// No description provided for @repoSkillPickInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed skills'**
+  String get repoSkillPickInstalled;
+
+  /// No description provided for @repoSkillAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add skill'**
+  String get repoSkillAdd;
+
+  /// No description provided for @repoSkillModelDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default model'**
+  String get repoSkillModelDefault;
+
+  /// No description provided for @repoSkillModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Model (optional)'**
+  String get repoSkillModelHint;
+
+  /// No description provided for @repoSkillMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get repoSkillMoveUp;
+
+  /// No description provided for @repoSkillMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get repoSkillMoveDown;
+
+  /// No description provided for @repoSkillRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove skill'**
+  String get repoSkillRemove;
+
+  /// No description provided for @repoLastCheckedCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'Baseline commit: {hash}'**
+  String repoLastCheckedCommit(String hash);
+
+  /// No description provided for @appBusyAutoSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto sync…'**
+  String get appBusyAutoSync;
+
+  /// No description provided for @appBusyRunningSkill.
+  ///
+  /// In en, this message translates to:
+  /// **'Skill: {skill}…'**
+  String appBusyRunningSkill(String skill);
+
+  /// No description provided for @topHelperRunningSkillsIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{running 1 skill in {repo}…} other{running {count} skills in {repo}…}}'**
+  String topHelperRunningSkillsIn(int count, String repo);
+
+  /// No description provided for @topHelperSkillsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done · {done} of {total} skills finished in {repo}'**
+  String topHelperSkillsDone(int done, int total, String repo);
+
+  /// No description provided for @topHelperSkillStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Skill {skill} ({agent}{model})'**
+  String topHelperSkillStep(String skill, String agent, String model);
+
+  /// No description provided for @cardAutoCommitPushDiffShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto commit ({commitMinutes}m) & push ({pushMinutes}m)'**
+  String cardAutoCommitPushDiffShort(int commitMinutes, int pushMinutes);
+
+  /// No description provided for @cardCountdownCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'Commit'**
+  String get cardCountdownCommit;
+
+  /// No description provided for @cardCountdownPush.
+  ///
+  /// In en, this message translates to:
+  /// **'Push'**
+  String get cardCountdownPush;
+
+  /// No description provided for @cardCountdownSkill.
+  ///
+  /// In en, this message translates to:
+  /// **'Skill'**
+  String get cardCountdownSkill;
+
+  /// No description provided for @cardCountdownRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'now…'**
+  String get cardCountdownRunning;
+
+  /// No description provided for @cardCountdownCommitTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Next auto-commit in {time} (every {minutes}m) · click to edit'**
+  String cardCountdownCommitTooltip(String time, int minutes);
+
+  /// No description provided for @cardCountdownPushTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Next auto-push in {time} (every {minutes}m) · click to edit'**
+  String cardCountdownPushTooltip(String time, int minutes);
+
+  /// No description provided for @cardCountdownSkillTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Next skill check in {time} (every {minutes}m) · click to edit'**
+  String cardCountdownSkillTooltip(String time, int minutes);
+
+  /// No description provided for @repoCommitIntervalMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Commit every (min)'**
+  String get repoCommitIntervalMinutes;
+
+  /// No description provided for @repoPushIntervalMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Push every (min)'**
+  String get repoPushIntervalMinutes;
 }
 
 class _AppLocalizationsDelegate

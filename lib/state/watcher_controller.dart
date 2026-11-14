@@ -19,10 +19,12 @@ class RepoState {
   CiStatus ci = CiStatus.none;
   String? error;
   String? busy;
-  bool writing = false;
-  final message = TextEditingController();
+  bool committing = false;
 
   String get name => repoDisplayName(path);
+  String get folderName => repoFolderName(path);
+  String get diskPath => formatDiskPath(path);
+  String? get remoteUrl => status?.remoteUrl;
   List<FileChange> get files => status?.files ?? const [];
   bool get dirty => files.isNotEmpty;
   int get ahead => status?.ahead ?? 0;
@@ -65,6 +67,7 @@ class WatcherController extends ChangeNotifier {
   bool scanning = true;
   bool refreshing = false;
   bool fetching = false;
+  bool committingAll = false;
   bool claudeReady = false;
   bool codexReady = false;
 
@@ -72,7 +75,16 @@ class WatcherController extends ChangeNotifier {
   final _again = <String>{};
   final _debounce = <String, Timer>{};
   final _fastCiUntil = <String, DateTime>{};
+  final _lastAutoCommitAt = <String, DateTime>{};
+  final _lastAutoPushAt = <String, DateTime>{};
+  final _lastSkillCheckAt = <String, DateTime>{};
+  final _autoBusy = <String>{};
   final _timers = <Timer>[];
+  late final DateTime _startedAt = DateTime.now();
+
+  /// Wall-clock tick once per second so countdown pills on cards update smoothly without rebuilding the whole app.
+  late final ValueNotifier<DateTime> clock = ValueNotifier<DateTime>(_startedAt);
+  var _automationTicking = false;
   StreamSubscription<FileSystemEvent>? _watch;
   var _disposed = false;
 
@@ -108,11 +120,16 @@ class WatcherController extends ChangeNotifier {
   Future<void> start() async {
     unawaited(checkAi());
     await _load();
+    _seedSkillBaselines();
     _timers.addAll([
+      Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!_disposed) clock.value = DateTime.now();
+      }),
       Timer.periodic(const Duration(minutes: 2), (_) => refreshAll()),
       Timer.periodic(const Duration(minutes: 2), (_) => refreshCiAll()),
       Timer.periodic(const Duration(seconds: 15), (_) => _pollActiveCi()),
       Timer.periodic(const Duration(minutes: 15), (_) => fetchAll()),
+      Timer.periodic(const Duration(seconds: 3), (_) => _tickAutomation()),
     ]);
   }
 
@@ -183,9 +200,6 @@ class WatcherController extends ChangeNotifier {
     _all = [
       for (final path in paths) previous.remove(path) ?? RepoState(path, config.icons[path] ?? GitWatcherService.findIcon(path)),
     ];
-    for (final gone in previous.values) {
-      gone.message.dispose();
-    }
     scanning = false;
     _notify();
     _watchFiles();
@@ -227,6 +241,222 @@ class WatcherController extends ChangeNotifier {
     config.save();
     _notify();
     if (isCiWatched(repo)) unawaited(refreshCi(repo));
+  }
+
+  RepoAutomationConfig? repoAutomation(RepoState repo) => config.maybeAutomation(repo.path);
+
+  List<String> discoverSkillsFor(RepoState repo) => ai.discoverSkills(root: config.root, repo: repo.path);
+
+  void updateRepoAutomation(
+    RepoState repo,
+    void Function(RepoAutomationConfig auto) edit, {
+    bool resetCommitTimer = false,
+    bool resetPushTimer = false,
+    bool resetSkillTimer = false,
+  }) {
+    final auto = config.ensureAutomation(repo.path);
+    edit(auto);
+    if (auto.watchCommitsForSkills && (auto.lastSkillCommit == null || auto.lastSkillCommit!.isEmpty)) {
+      auto.lastSkillCommit = repo.status?.headHash;
+    }
+    config
+      ..pruneAutomation(repo.path)
+      ..save();
+    final now = DateTime.now();
+    if (resetCommitTimer) _lastAutoCommitAt[repo.path] = now;
+    if (resetPushTimer) _lastAutoPushAt[repo.path] = now;
+    if (resetSkillTimer) _lastSkillCheckAt[repo.path] = now;
+    clock.value = now;
+    _notify();
+  }
+
+  /// Remaining time until the next scheduled auto-commit check for [repo], or `null` if disabled.
+  Duration? nextAutoCommitIn(RepoState repo, {DateTime? now}) {
+    final auto = config.maybeAutomation(repo.path);
+    if (auto == null || !auto.autoCommit) return null;
+    final current = now ?? clock.value;
+    final base = _lastAutoCommitAt[repo.path] ?? _startedAt;
+    final diff = base.add(Duration(minutes: auto.syncIntervalMinutes)).difference(current);
+    return diff.isNegative ? Duration.zero : diff;
+  }
+
+  /// Remaining time until the next scheduled auto-push check for [repo], or `null` if disabled.
+  Duration? nextAutoPushIn(RepoState repo, {DateTime? now}) {
+    final auto = config.maybeAutomation(repo.path);
+    if (auto == null || !auto.autoPush) return null;
+    final current = now ?? clock.value;
+    final base = _lastAutoPushAt[repo.path] ?? _startedAt;
+    final diff = base.add(Duration(minutes: auto.pushIntervalMinutes)).difference(current);
+    return diff.isNegative ? Duration.zero : diff;
+  }
+
+  /// Remaining time until the next scheduled commit-check for skills on [repo], or `null` if disabled.
+  Duration? nextSkillRunIn(RepoState repo, {DateTime? now}) {
+    final auto = config.maybeAutomation(repo.path);
+    if (auto == null || !auto.hasSkillWatch) return null;
+    final current = now ?? clock.value;
+    final base = _lastSkillCheckAt[repo.path] ?? _startedAt;
+    final diff = base.add(Duration(minutes: auto.skillIntervalMinutes)).difference(current);
+    return diff.isNegative ? Duration.zero : diff;
+  }
+
+  void _seedSkillBaselines() {
+    var changed = false;
+    for (final repo in repos) {
+      final auto = config.maybeAutomation(repo.path);
+      final head = repo.status?.headHash;
+      if (auto != null && auto.watchCommitsForSkills && (auto.lastSkillCommit == null || auto.lastSkillCommit!.isEmpty) && head != null) {
+        auto.lastSkillCommit = head;
+        changed = true;
+      }
+    }
+    if (changed) config.save();
+  }
+
+  /// Runs auto-commit and/or auto-push for [repo] according to its settings (or explicit flags).
+  Future<String> runRepoAutoSync(RepoState repo, {bool? forceCommit, bool? forcePush}) async {
+    final auto = config.maybeAutomation(repo.path);
+    final doCommit = forceCommit ?? auto?.autoCommit ?? false;
+    final doPush = forcePush ?? auto?.autoPush ?? false;
+    if (!doCommit && !doPush) return '';
+    if (!_autoBusy.add(repo.path)) return '';
+    try {
+      await refreshRepo(repo.path);
+      var status = repo.status;
+      if (status == null || status.operation != RepoOperation.none) return '';
+      final results = <String>[];
+      if (doCommit) {
+        if (status.files.isNotEmpty) {
+          final summary = await commit(repo);
+          results.add(summary);
+          status = repo.status;
+        }
+        _lastAutoCommitAt[repo.path] = DateTime.now();
+      }
+      if (doPush && status != null) {
+        final hasUnpushed = repo.ahead > 0 || (status.upstream == null && status.hasCommits);
+        if (hasUnpushed) {
+          await runAction(repo, l10n.appBusyAutoSync, () async {
+            if (status!.remoteUrl != null && status.upstream != null) {
+              await service.fetch(repo.path);
+              final fresh = await service.status(repo.path);
+              if (fresh.behind > 0) {
+                await service.pullRebase(repo.path);
+              }
+            }
+            final out = await service.push(repo.path);
+            expectCi(repo);
+            return out;
+          });
+          results.add(l10n.appPushedRepo(repo.name));
+        }
+        _lastAutoPushAt[repo.path] = DateTime.now();
+      }
+      clock.value = DateTime.now();
+      _notify();
+      return results.join(' · ');
+    } finally {
+      _autoBusy.remove(repo.path);
+    }
+  }
+
+  /// Runs the configured skills for [repo] immediately and updates its commit baseline.
+  Future<bool> runRepoSkillsNow(RepoState repo) async {
+    final auto = config.maybeAutomation(repo.path);
+    if (auto == null || !auto.hasActiveSkills || helper.running) return false;
+    final ok = await helper.runSkills(repo, auto.skills);
+    final head = repo.status?.headHash;
+    if (head != null && head.isNotEmpty) {
+      auto.lastSkillCommit = head;
+      config.save();
+    }
+    final now = DateTime.now();
+    _lastSkillCheckAt[repo.path] = now;
+    clock.value = now;
+    _notify();
+    return ok;
+  }
+
+  Future<void> _tickAutomation() async {
+    if (_automationTicking || scanning || _disposed) return;
+    _automationTicking = true;
+    try {
+      final now = DateTime.now();
+      for (final repo in repos) {
+        if (_disposed) return;
+        final auto = config.maybeAutomation(repo.path);
+        if (auto == null || !auto.hasAnyAutomation) continue;
+
+        final commitDue = auto.autoCommit &&
+            now.difference(_lastAutoCommitAt[repo.path] ?? _startedAt) >= Duration(minutes: auto.syncIntervalMinutes);
+        final pushDue = auto.autoPush &&
+            now.difference(_lastAutoPushAt[repo.path] ?? _startedAt) >= Duration(minutes: auto.pushIntervalMinutes);
+
+        if ((commitDue || pushDue) && repo.busy == null && !committingAll && !helper.running) {
+          if (commitDue) _lastAutoCommitAt[repo.path] = now;
+          if (pushDue) _lastAutoPushAt[repo.path] = now;
+          clock.value = now;
+          try {
+            await runRepoAutoSync(repo, forceCommit: commitDue, forcePush: pushDue);
+          } on Object catch (error) {
+            repo.error = firstLine(l10n, error);
+            _notify();
+          }
+        }
+
+        if (auto.hasSkillWatch && repo.busy == null && !helper.running) {
+          final lastCheck = _lastSkillCheckAt[repo.path] ?? _startedAt;
+          if (now.difference(lastCheck) >= Duration(minutes: auto.skillIntervalMinutes)) {
+            _lastSkillCheckAt[repo.path] = now;
+            clock.value = now;
+            await _checkAndRunSkills(repo, auto);
+            _lastSkillCheckAt[repo.path] = DateTime.now();
+          }
+        }
+      }
+    } finally {
+      _automationTicking = false;
+    }
+  }
+
+  Future<void> _checkAndRunSkills(RepoState repo, RepoAutomationConfig auto) async {
+    if (!_autoBusy.add(repo.path)) return;
+    try {
+      if (repo.remoteUrl != null) {
+        try {
+          await service.fetch(repo.path);
+        } on Object {
+          // Offline fetch failure should not prevent checking local commits.
+        }
+      }
+      await refreshRepo(repo.path);
+      if (!repo.dirty && repo.behind > 0 && repo.operation == RepoOperation.none) {
+        try {
+          await pullRebase(repo);
+        } on Object catch (error) {
+          repo.error = firstLine(l10n, error);
+          _notify();
+          return;
+        }
+      }
+      final head = repo.status?.headHash;
+      if (head == null || head.isEmpty) return;
+      if (auto.lastSkillCommit == null || auto.lastSkillCommit!.isEmpty) {
+        auto.lastSkillCommit = head;
+        config.save();
+        _notify();
+        return;
+      }
+      if (head == auto.lastSkillCommit) return;
+
+      await helper.runSkills(repo, auto.skills);
+      final afterHead = repo.status?.headHash ?? head;
+      auto.lastSkillCommit = afterHead;
+      config.save();
+      _notify();
+    } finally {
+      _autoBusy.remove(repo.path);
+    }
   }
 
   Future<void> refreshAll() async {
@@ -292,19 +522,27 @@ class WatcherController extends ChangeNotifier {
     }
   }
 
-  Future<String> commit(RepoState repo, {List<FileChange>? files, String? message}) =>
-      runAction(repo, 'Commit…', () async {
-        final text = (message ?? repo.message.text).trim();
-        if (text.isEmpty) {
-          throw GitException(l10n.appWriteMessageFirst);
-        }
-        final hash = await service.commit(repo.path, files ?? repo.files, text, operation: repo.operation);
-        if (message == null) repo.message.clear();
-        return l10n.appCommitted(hash, repo.name);
+  Future<String> commit(RepoState repo, {List<FileChange>? files}) async {
+    repo.committing = true;
+    try {
+      return await runAction(repo, l10n.appBusyCommitting, () async {
+        final targetFiles = files ?? repo.files;
+        if (targetFiles.isEmpty) throw GitException(l10n.nothingToCommit);
+        final text = await generateMessage(repo, subjectOnly: false, files: targetFiles);
+        final hash = await service.commit(repo.path, targetFiles, text, operation: repo.operation);
+        _lastAutoCommitAt[repo.path] = DateTime.now();
+        final subject = text.split('\n').first.trim();
+        return '${l10n.appCommitted(hash, repo.name)} · $subject';
       });
+    } finally {
+      repo.committing = false;
+      _notify();
+    }
+  }
 
   Future<String> push(RepoState repo) => runAction(repo, 'Push…', () async {
         final output = await service.push(repo.path);
+        _lastAutoPushAt[repo.path] = DateTime.now();
         expectCi(repo);
         return output;
       });
@@ -328,19 +566,6 @@ class WatcherController extends ChangeNotifier {
   Future<void> discard(RepoState repo, FileChange file) =>
       runAction(repo, l10n.appBusyDiscard, () => service.discard(repo.path, file));
 
-  /// Lets the chosen AI write the message into [into] (the card's field by default).
-  Future<void> writeMessage(RepoState repo, {bool subjectOnly = true, TextEditingController? into, List<FileChange>? files}) async {
-    if (repo.writing) return;
-    repo.writing = true;
-    _notify();
-    try {
-      (into ?? repo.message).text = await generateMessage(repo, subjectOnly: subjectOnly, files: files);
-    } finally {
-      repo.writing = false;
-      _notify();
-    }
-  }
-
   Future<String> generateMessage(RepoState repo, {required bool subjectOnly, List<FileChange>? files}) async {
     final status = repo.status ?? await service.status(repo.path);
     final changes = await service.describeChanges(repo.path, files ?? status.files, hasCommits: status.hasCommits);
@@ -354,36 +579,28 @@ class WatcherController extends ChangeNotifier {
     );
   }
 
-  Future<List<String>> writeAllMessages() async {
-    final failures = <String>[];
-    final targets = repos.where((r) => r.dirty && r.message.text.trim().isEmpty).toList();
-    // CLI sessions are slow to start and share one account, so they run one at a time.
-    await _limited(targets, aiProvider.cli ? 1 : 3, (repo) async {
-      try {
-        await writeMessage(repo);
-      } on Object catch (error) {
-        failures.add('${repo.name}: ${firstLine(l10n, error)}');
-      }
-    });
-    return failures;
-  }
-
-  /// Commits every repo that has a message written; the rest are listed as skipped.
+  /// Writes an AI commit message and commits every dirty repo in one step.
   Future<List<String>> commitAll() async {
+    if (committingAll) return const [];
+    committingAll = true;
+    _notify();
     final report = <String>[];
-    for (final repo in repos.where((r) => r.dirty).toList()) {
-      if (repo.message.text.trim().isEmpty) {
-        report.add(l10n.appSkippedNoMessage(repo.name));
-        continue;
-      }
-      try {
-        await commit(repo);
-        report.add(l10n.appCommittedRepo(repo.name));
-      } on Object catch (error) {
-        report.add('${repo.name}: ${firstLine(l10n, error)}');
-      }
+    try {
+      final targets = repos.where((r) => r.dirty && r.busy == null).toList();
+      // CLI sessions are slow to start and share one account, so they run one at a time.
+      await _limited(targets, aiProvider.cli ? 1 : 3, (repo) async {
+        try {
+          await commit(repo);
+          report.add(l10n.appCommittedRepo(repo.name));
+        } on Object catch (error) {
+          report.add('${repo.name}: ${firstLine(l10n, error)}');
+        }
+      });
+      return report;
+    } finally {
+      committingAll = false;
+      _notify();
     }
-    return report;
   }
 
   /// Pushes one repo at a time, because pre-push hooks can be heavy.
@@ -427,11 +644,12 @@ class WatcherController extends ChangeNotifier {
   }
 
   void _onFileEvent(FileSystemEvent event) {
-    final path = event.path;
-    if (path.contains('/.git/objects/') || path.contains('/.git/logs/') || path.endsWith('.lock')) return;
+    final normalized = event.path.replaceAll(r'\', '/');
+    if (normalized.contains('/.git/objects/') || normalized.contains('/.git/logs/') || normalized.endsWith('.lock')) return;
     String? owner;
     for (final repo in _all) {
-      if ((path == repo.path || path.startsWith('${repo.path}/')) && repo.path.length > (owner?.length ?? 0)) {
+      final repoNorm = repo.path.replaceAll(r'\', '/');
+      if ((normalized == repoNorm || normalized.startsWith('$repoNorm/')) && repo.path.length > (owner?.length ?? 0)) {
         owner = repo.path;
       }
     }
@@ -465,9 +683,7 @@ class WatcherController extends ChangeNotifier {
       timer.cancel();
     }
     unawaited(_watch?.cancel());
-    for (final repo in _all) {
-      repo.message.dispose();
-    }
+    clock.dispose();
     helper.dispose();
     super.dispose();
   }
